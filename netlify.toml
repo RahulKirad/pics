@@ -1,0 +1,3 @@
+[build]
+  command = "npm run build --workspace=@photo-platform/shared-types --workspace=@photo-platform/validation && npm run build --workspace=@photo-platform/web"
+  publish = "apps/web/dist"
