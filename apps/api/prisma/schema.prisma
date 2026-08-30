@@ -1,0 +1,764 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  ADMIN
+  UPLOADER
+  EDITOR
+  VIEWER
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  PROCESSING
+  READY
+  ARCHIVED
+  EXPIRED
+  DELETED
+}
+
+enum EventPrivacyMode {
+  PRIVATE_PERSONALIZED
+  CONTROLLED_GALLERY
+  PUBLIC_GALLERY
+}
+
+enum PhotoStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum UploadSessionStatus {
+  PENDING
+  UPLOADING
+  COMPLETED
+  FAILED
+  CANCELLED
+  DUPLICATE
+}
+
+enum StorageDriver {
+  vps
+  s3
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+  EXPIRED
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  PROFESSIONAL
+  STUDIO
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  REGISTER
+  EVENT_CREATE
+  EVENT_UPDATE
+  EVENT_DELETE
+  EVENT_ARCHIVE
+  PHOTO_UPLOAD
+  PHOTO_DELETE
+  PHOTO_DOWNLOAD
+  TEAM_MEMBER_ADD
+  TEAM_MEMBER_REMOVE
+  SUBSCRIPTION_CHANGE
+  ADMIN_ACCESS
+  FACE_DATA_DELETE
+  GUEST_SEARCH
+  SETTINGS_UPDATE
+}
+
+// ─── Users & Auth ────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  firstName         String
+  lastName          String
+  role              UserRole  @default(VIEWER)
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  avatarUrl         String?
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  businessMembers   BusinessMember[]
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordResetToken[]
+  eventMembers      EventMember[]
+  favorites         Favorite[]
+  downloads         Download[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  userAgent   String?
+  ipAddress   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ─── Business / Tenancy ──────────────────────────────────────────────────────
+
+model Business {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  website     String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       BusinessMember[]
+  events        Event[]
+  subscriptions Subscription[]
+  storageUsage  StorageUsage[]
+  usageRecords  UsageRecord[]
+  auditLogs     AuditLog[]
+  payments      Payment[]
+
+  @@index([slug])
+  @@map("businesses")
+}
+
+model BusinessMember {
+  id         String   @id @default(uuid())
+  businessId String
+  userId     String
+  role       UserRole @default(VIEWER)
+  invitedAt  DateTime @default(now())
+  joinedAt   DateTime?
+  isActive   Boolean  @default(true)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+  @@map("business_members")
+}
+
+// ─── Plans & Subscriptions ───────────────────────────────────────────────────
+
+model Plan {
+  id                String   @id @default(uuid())
+  tier              PlanTier @unique
+  name              String
+  description       String?
+  priceMonthly      Int      @default(0)
+  priceYearly       Int      @default(0)
+  maxEvents         Int      @default(5)
+  maxStorageGb      Int      @default(5)
+  maxPhotos         Int      @default(1000)
+  maxAiProcessing   Int      @default(1000)
+  maxFaceSearches   Int      @default(500)
+  maxBandwidthGb    Int      @default(10)
+  maxDownloads      Int      @default(500)
+  maxTeamMembers    Int      @default(3)
+  brandingEnabled   Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  businessId           String
+  planId               String
+  status               SubscriptionStatus @default(TRIALING)
+  razorpaySubId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  cancelledAt          DateTime?
+  trialEndsAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  payments Payment[]
+  invoices Invoice[]
+
+  @@index([businessId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  businessId      String
+  subscriptionId  String?
+  razorpayPayId   String?       @unique
+  razorpayOrderId String?
+  amount          Int
+  currency        String        @default("INR")
+  status          PaymentStatus @default(PENDING)
+  method          String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([businessId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  subscriptionId String
+  invoiceNumber  String   @unique
+  amount         Int
+  currency       String   @default("INR")
+  pdfUrl         String?
+  issuedAt       DateTime @default(now())
+  dueAt          DateTime?
+  paidAt         DateTime?
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("invoices")
+}
+
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+model Event {
+  id                 String           @id @default(uuid())
+  businessId         String
+  name               String
+  slug               String
+  eventToken         String           @unique
+  description        String?          @db.Text
+  eventType          String?
+  eventDate          DateTime?
+  location           String?
+  coverImageKey      String?
+  expiryDate         DateTime?
+  privacyMode        EventPrivacyMode @default(PRIVATE_PERSONALIZED)
+  downloadEnabled    Boolean          @default(true)
+  guestUploadEnabled Boolean          @default(false)
+  status             EventStatus      @default(DRAFT)
+  photoCount         Int              @default(0)
+  faceCount          Int              @default(0)
+  guestSearchCount   Int              @default(0)
+  downloadCount      Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  members        EventMember[]
+  folders        Folder[]
+  photos         Photo[]
+  qrCodes        QrCode[]
+  watermarks     Watermark[]
+  guestSessions  GuestSession[]
+  guestSearches  GuestSearch[]
+  guestUploads   GuestUpload[]
+  storageUsage   StorageUsage[]
+  uploadSessions UploadSession[]
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([businessId, status])
+  @@index([eventToken])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("events")
+}
+
+model EventMember {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  role      UserRole @default(VIEWER)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_members")
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  eventId   String
+  businessId String
+  name      String
+  parentId  String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children Folder[] @relation("FolderHierarchy")
+  photos   Photo[]
+
+  @@index([eventId])
+  @@index([businessId])
+  @@index([parentId])
+  @@map("folders")
+}
+
+// ─── Photos & Faces ──────────────────────────────────────────────────────────
+
+model Photo {
+  id              String      @id @default(uuid())
+  eventId         String
+  businessId      String
+  folderId        String?
+  originalName    String
+  mimeType        String
+  fileSize        BigInt
+  checksum        String
+  width           Int?
+  height          Int?
+  status          PhotoStatus @default(UPLOADING)
+  storageDriver   StorageDriver @default(vps)
+  storageKey      String
+  thumbnailKey    String?
+  previewKey      String?
+  watermarkedKey  String?
+  aiProcessingKey String?
+  faceCount       Int         @default(0)
+  processingError String?     @db.Text
+  uploadedBy      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  event              Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  folder             Folder?             @relation(fields: [folderId], references: [id])
+  faces              PhotoFace[]
+  favorites          Favorite[]
+  downloads          Download[]
+  guestSearchMatches GuestSearchMatch[]
+
+  @@index([eventId])
+  @@index([businessId])
+  @@index([eventId, status])
+  @@index([checksum])
+  @@index([eventId, checksum, fileSize])
+  @@index([folderId])
+  @@index([createdAt])
+  @@map("photos")
+}
+
+model UploadSession {
+  id             String              @id @default(uuid())
+  eventId        String
+  businessId     String
+  userId         String
+  originalName   String
+  mimeType       String
+  fileSize       BigInt
+  checksum       String
+  storageDriver  StorageDriver
+  storageKey     String
+  tempKey        String?
+  folderId       String?
+  status         UploadSessionStatus @default(PENDING)
+  chunkSize      Int                 @default(5242880)
+  totalChunks    Int                 @default(1)
+  uploadedChunks Int                 @default(0)
+  uploadedBytes  BigInt              @default(0)
+  photoId        String?
+  errorMessage   String?             @db.Text
+  s3UploadId     String?
+  expiresAt      DateTime
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([businessId])
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([eventId, checksum, fileSize])
+  @@map("upload_sessions")
+}
+
+model PhotoFace {
+  id           String   @id @default(uuid())
+  photoId      String
+  eventId      String
+  businessId   String
+  boundingBox  Json
+  confidence   Float
+  qualityScore Float?
+  landmarkData Json?
+  createdAt    DateTime @default(now())
+
+  photo     Photo          @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  embedding FaceEmbedding?
+
+  @@index([photoId])
+  @@index([eventId])
+  @@index([businessId])
+  @@map("photo_faces")
+}
+
+model FaceEmbedding {
+  id           String   @id @default(uuid())
+  photoFaceId  String   @unique
+  photoId      String
+  eventId      String
+  businessId   String
+  qdrantPointId String  @unique
+  modelVersion String
+  embeddingVector Json?
+  createdAt    DateTime @default(now())
+
+  photoFace PhotoFace @relation(fields: [photoFaceId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([photoId])
+  @@index([businessId])
+  @@map("face_embeddings")
+}
+
+// ─── Guest Experience ────────────────────────────────────────────────────────
+
+model GuestSession {
+  id           String    @id @default(uuid())
+  eventId      String
+  sessionToken String    @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  event    Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  consents GuestConsent[]
+  searches GuestSearch[]
+
+  @@index([eventId])
+  @@index([sessionToken])
+  @@index([expiresAt])
+  @@map("guest_sessions")
+}
+
+model GuestConsent {
+  id              String   @id @default(uuid())
+  guestSessionId  String
+  eventId         String
+  consentGiven    Boolean
+  consentVersion  String
+  consentTimestamp DateTime @default(now())
+  ipAddress       String?
+
+  guestSession GuestSession @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+
+  @@index([guestSessionId])
+  @@index([eventId])
+  @@map("guest_consents")
+}
+
+model GuestSearch {
+  id                  String   @id @default(uuid())
+  guestSessionId      String
+  eventId             String
+  matchCount          Int      @default(0)
+  similarityThreshold Float    @default(0.6)
+  processingMs        Int?
+  selfieStorageKey    String?
+  embeddingStored     Boolean  @default(false)
+  errorMessage        String?  @db.Text
+  createdAt           DateTime @default(now())
+
+  guestSession GuestSession       @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  matches      GuestSearchMatch[]
+
+  @@index([guestSessionId])
+  @@index([eventId])
+  @@index([createdAt])
+  @@map("guest_searches")
+}
+
+model GuestSearchMatch {
+  id            String   @id @default(uuid())
+  guestSearchId String
+  photoId       String
+  photoFaceId   String
+  similarity    Float
+  rank          Int
+  createdAt     DateTime @default(now())
+
+  guestSearch GuestSearch @relation(fields: [guestSearchId], references: [id], onDelete: Cascade)
+  photo       Photo       @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([guestSearchId, photoId])
+  @@index([guestSearchId])
+  @@index([photoId])
+  @@map("guest_search_matches")
+}
+
+model GuestUpload {
+  id         String   @id @default(uuid())
+  eventId    String
+  storageKey String
+  mimeType   String
+  fileSize   BigInt
+  status     PhotoStatus @default(PROCESSING)
+  createdAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("guest_uploads")
+}
+
+// ─── Engagement ──────────────────────────────────────────────────────────────
+
+model Favorite {
+  id             String   @id @default(uuid())
+  photoId        String
+  userId         String?
+  guestSessionId String?
+  eventId        String
+  createdAt      DateTime @default(now())
+
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@unique([photoId, userId])
+  @@unique([photoId, guestSessionId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([guestSessionId])
+  @@map("favorites")
+}
+
+model Download {
+  id             String   @id @default(uuid())
+  photoId        String
+  userId         String?
+  guestSessionId String?
+  eventId        String
+  businessId     String
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@index([photoId])
+  @@index([eventId])
+  @@index([businessId])
+  @@index([createdAt])
+  @@map("downloads")
+}
+
+// ─── QR & Watermarks ─────────────────────────────────────────────────────────
+
+model QrCode {
+  id        String   @id @default(uuid())
+  eventId   String
+  format    String   @default("png")
+  storageKey String?
+  svgContent String? @db.Text
+  isBranded Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("qr_codes")
+}
+
+model Watermark {
+  id         String   @id @default(uuid())
+  eventId    String
+  businessId String
+  name       String
+  imageKey   String?
+  text       String?
+  opacity    Float    @default(0.5)
+  position   String   @default("bottom-right")
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([businessId])
+  @@map("watermarks")
+}
+
+// ─── Platform ────────────────────────────────────────────────────────────────
+
+model StorageUsage {
+  id              String        @id @default(uuid())
+  businessId      String
+  eventId         String?
+  storageDriver   StorageDriver
+  originalBytes   BigInt        @default(0)
+  previewBytes    BigInt        @default(0)
+  thumbnailBytes  BigInt        @default(0)
+  watermarkBytes  BigInt        @default(0)
+  guestUploadBytes BigInt       @default(0)
+  tempBytes       BigInt        @default(0)
+  aiBytes         BigInt        @default(0)
+  totalBytes      BigInt        @default(0)
+  lastCalculatedAt DateTime     @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  event    Event?   @relation(fields: [eventId], references: [id])
+
+  @@unique([businessId, eventId])
+  @@index([businessId])
+  @@map("storage_usage")
+}
+
+model UsageRecord {
+  id           String   @id @default(uuid())
+  businessId   String
+  recordType   String
+  count        Int      @default(0)
+  periodStart  DateTime
+  periodEnd    DateTime
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([recordType])
+  @@index([periodStart])
+  @@map("usage_records")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?
+  businessId String?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user     User?     @relation(fields: [userId], references: [id])
+  business Business? @relation(fields: [businessId], references: [id])
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@index([category])
+  @@map("system_settings")
+}
