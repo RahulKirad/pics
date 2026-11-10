@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ImagePlus, Loader2, Send, Sparkles, X } from 'lucide-react';
 import { AiAssistantIcon } from '@/components/chatbot/AiAssistantIcon';
+import { AssistantMessageContent } from '@/components/chatbot/AssistantMessageContent';
 import { useAuthStore } from '@/stores/auth-store';
 import {
   AUTHENTICATED_ASSISTANT_RULES,
@@ -242,7 +243,11 @@ export function PicShareAssistant() {
               key={msg.id}
               className={`picshare-assistant-bubble picshare-assistant-bubble--${msg.role === 'user' ? 'user' : 'bot'}`}
             >
-              {msg.text}
+              {msg.role === 'assistant' ? (
+                <AssistantMessageContent text={msg.text} onNavigate={() => setOpen(false)} />
+              ) : (
+                msg.text
+              )}
               {msg.imagePreview ? (
                 <img src={msg.imagePreview} alt="" />
               ) : null}
