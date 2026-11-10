@@ -7,9 +7,9 @@ import {
   User,
   Menu,
   X,
-  Camera,
   LogOut,
 } from 'lucide-react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,9 +41,8 @@ export function DashboardLayout() {
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col border-r bg-background">
-        <div className="flex h-16 items-center gap-2 border-b px-6">
-          <Camera className="h-5 w-5" />
-          <span className="font-semibold">PhotoFlow</span>
+        <div className="flex h-16 items-center border-b px-4">
+          <BrandLogo linkToHome size="sm" />
         </div>
         <nav className="flex-1 space-y-1 p-4">
           {sidebarLinks.map((link) => {
@@ -83,10 +82,7 @@ export function DashboardLayout() {
       {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-40 border-b bg-background safe-top">
         <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2 font-semibold">
-            <Camera className="h-5 w-5" />
-            PhotoFlow
-          </div>
+          <BrandLogo linkToHome size="sm" />
           <button
             onClick={() => setSidebarOpen(true)}
             className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-accent"

@@ -1,0 +1,270 @@
+.picshare-assistant {
+  --psa-navy: #0b2a8f;
+  --psa-blue: #1d4ed8;
+  --psa-sky: #3b82f6;
+  --psa-pink: #ec1c79;
+  --psa-ink: #0f172a;
+  --psa-muted: #64748b;
+  --psa-line: #e6eaf3;
+  --psa-bg: #f7f9fd;
+  --psa-grad: linear-gradient(135deg, #1e3fd8 0%, #e11d74 75%, #f97316 100%);
+  --psa-shadow: 0 18px 50px -20px rgba(15, 40, 120, 0.45);
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+  z-index: 60;
+}
+
+.picshare-assistant-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--psa-grad);
+  color: #fff;
+  box-shadow: var(--psa-shadow);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.picshare-assistant-fab:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+
+.picshare-assistant-fab:focus-visible {
+  outline: 2px solid var(--psa-sky);
+  outline-offset: 3px;
+}
+
+.picshare-assistant-panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: min(420px, calc(100vw - 1.5rem));
+  max-height: min(640px, calc(100vh - 2rem));
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--psa-line);
+  box-shadow: var(--psa-shadow);
+}
+
+.picshare-assistant-header {
+  padding: 1rem 1.1rem;
+  background: linear-gradient(120deg, #0b2a8f 0%, #1d4ed8 55%, #5b2bd9 100%);
+  color: #fff;
+}
+
+.picshare-assistant-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.picshare-assistant-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.picshare-assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--psa-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.picshare-assistant-bubble {
+  max-width: 92%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.picshare-assistant-bubble--user {
+  align-self: flex-end;
+  background: #fff;
+  border: 1px solid var(--psa-line);
+  color: var(--psa-ink);
+}
+
+.picshare-assistant-bubble--bot {
+  align-self: flex-start;
+  background: #fff;
+  border-left: 3px solid var(--psa-pink);
+  color: var(--psa-ink);
+  box-shadow: 0 4px 14px -10px rgba(15, 23, 42, 0.35);
+}
+
+.picshare-assistant-bubble img {
+  margin-top: 0.5rem;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--psa-line);
+}
+
+.picshare-assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 1rem 0.5rem;
+  background: var(--psa-bg);
+}
+
+.picshare-assistant-chip {
+  font-size: 0.7rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--psa-line);
+  background: #fff;
+  color: var(--psa-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.picshare-assistant-chip:hover {
+  border-color: var(--psa-sky);
+  color: var(--psa-ink);
+}
+
+.picshare-assistant-compose {
+  border-top: 1px solid var(--psa-line);
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.picshare-assistant-attach-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--psa-muted);
+}
+
+.picshare-assistant-attach-preview img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.picshare-assistant-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.picshare-assistant-textarea {
+  flex: 1;
+  min-height: 2.5rem;
+  max-height: 6rem;
+  resize: vertical;
+  border: 1px solid var(--psa-line);
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.picshare-assistant-textarea:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.35);
+  border-color: var(--psa-sky);
+}
+
+.picshare-assistant-toolbar {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.picshare-assistant-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--psa-line);
+  background: #fff;
+  color: var(--psa-muted);
+  cursor: pointer;
+}
+
+.picshare-assistant-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.picshare-assistant-icon-btn:not(:disabled):hover {
+  color: var(--psa-blue);
+  border-color: var(--psa-sky);
+}
+
+.picshare-assistant-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--psa-navy);
+  color: #fff;
+  cursor: pointer;
+}
+
+.picshare-assistant-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.picshare-assistant-send:not(:disabled):hover {
+  background: var(--psa-blue);
+}
+
+.picshare-assistant-picker {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.picshare-assistant-picker-sheet {
+  width: 100%;
+  max-height: 70%;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid var(--psa-line);
+}
+
+.picshare-assistant-typing {
+  font-size: 0.8rem;
+  color: var(--psa-muted);
+  padding: 0 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .picshare-assistant-panel {
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+}
