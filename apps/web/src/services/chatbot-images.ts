@@ -1,4 +1,3 @@
-import { api } from '@/services/api';
 import { useAuthStore } from '@/stores/auth-store';
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -12,17 +11,25 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-/** Fetch a protected thumbnail/preview URL (requires photographer login). */
+async function loadImageUrl(url: string): Promise<Blob> {
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    const res = await fetch(url);
+    return res.blob();
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Could not load photo');
+  return res.blob();
+}
+
+/** Fetch a photo URL (Bolt Storage public URL or blob). */
 export async function fetchAuthenticatedImageBase64(
-  apiPath: string,
+  imageUrl: string,
 ): Promise<{ mimeType: string; base64: string; objectUrl: string }> {
   if (!useAuthStore.getState().isAuthenticated) {
     throw new Error('Sign in to load event photos.');
   }
 
-  const path = apiPath.replace(/^\/api\/v1/, '');
-  const { data } = await api.get(path, { responseType: 'blob' });
-  const blob = data as Blob;
+  const blob = await loadImageUrl(imageUrl);
   const mimeType = blob.type || 'image/jpeg';
   const base64 = await blobToBase64(blob);
   const objectUrl = URL.createObjectURL(blob);

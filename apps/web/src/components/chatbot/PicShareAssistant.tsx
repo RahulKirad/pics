@@ -16,7 +16,7 @@ import {
   fetchAuthenticatedImageBase64,
   readFileAsBase64,
 } from '@/services/chatbot-images';
-import type { PhotoSummary } from '@photo-platform/shared-types';
+import type { PhotoSummary } from '@/types/domain';
 import { EventPhotoPicker } from '@/components/chatbot/EventPhotoPicker';
 import '@/styles/chatbot.css';
 

@@ -19,8 +19,8 @@ function formatSearchTime(iso: string) {
   });
 }
 
-function statusLabel(status: 'pending' | 'complete' | 'failed') {
-  if (status === 'complete') return 'Complete';
+function statusLabel(status: string | undefined) {
+  if (status === 'complete' || status === 'completed') return 'Complete';
   if (status === 'failed') return 'Failed';
   return 'Pending';
 }
@@ -62,7 +62,7 @@ export function EventAnalyticsSection({ eventId }: EventAnalyticsSectionProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">{formatNumber(stat.value)}</p>
+                  <p className="text-2xl font-bold">{formatNumber(stat.value ?? 0)}</p>
                 </div>
                 <stat.icon className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -74,12 +74,12 @@ export function EventAnalyticsSection({ eventId }: EventAnalyticsSectionProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="pt-6">
-            <DailyBarChart title="Guest searches" data={data.guestSearchesByDay} />
+            <DailyBarChart title="Guest searches" data={data.guestSearchesByDay ?? []} />
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <DailyBarChart title="Downloads" data={data.downloadsByDay} />
+            <DailyBarChart title="Downloads" data={data.downloadsByDay ?? []} />
           </CardContent>
         </Card>
       </div>
@@ -89,11 +89,11 @@ export function EventAnalyticsSection({ eventId }: EventAnalyticsSectionProps) {
           <CardTitle className="text-base">Recent guest searches</CardTitle>
         </CardHeader>
         <CardContent>
-          {data.recentSearches.length === 0 ? (
+          {(data.recentSearches ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">No guest searches yet.</p>
           ) : (
             <div className="divide-y">
-              {data.recentSearches.map((search) => (
+              {(data.recentSearches ?? []).map((search) => (
                 <div
                   key={search.id}
                   className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"

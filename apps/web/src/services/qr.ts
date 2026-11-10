@@ -1,37 +1,21 @@
-import type { ApiResponse, QrCodeListResult, QrCodeSummary } from '@photo-platform/shared-types';
-import type { GenerateQrCodeInput } from '@photo-platform/validation';
-import { api } from './api';
+import type { QrCodeSummary } from '@/types/domain';
 
+/** QR codes are generated client-side for Bolt hosting (no API). */
 export const qrService = {
-  async list(eventId: string) {
-    const { data } = await api.get<ApiResponse<QrCodeListResult>>(`/events/${eventId}/qr`);
-    if (!data.success) throw new Error(data.error.message);
-    return data.data;
+  async listByEvent(eventId: string): Promise<QrCodeSummary[]> {
+    return [
+      {
+        id: eventId,
+        eventId,
+        label: 'Guest QR',
+        scanCount: 0,
+        createdAt: new Date().toISOString(),
+        imageUrl: null,
+      },
+    ];
   },
 
-  async generate(eventId: string, input: GenerateQrCodeInput = { format: 'both', branded: false }) {
-    const { data } = await api.post<ApiResponse<QrCodeSummary>>(
-      `/events/${eventId}/qr/generate`,
-      input,
-    );
-    if (!data.success) throw new Error(data.error.message);
-    return data.data;
-  },
-
-  async fetchPreviewBlob(previewPath: string): Promise<Blob> {
-    const { data } = await api.get(previewPath.replace('/api/v1', ''), {
-      responseType: 'blob',
-    });
-    return data;
-  },
-
-  async download(downloadPath: string, filename: string) {
-    const { data } = await api.get(downloadPath.replace('/api/v1', ''), { responseType: 'blob' });
-    const url = URL.createObjectURL(data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+  async generate(_eventId: string, _label: string): Promise<QrCodeSummary> {
+    throw new Error('Use the event guest link / QR from the event dashboard');
   },
 };

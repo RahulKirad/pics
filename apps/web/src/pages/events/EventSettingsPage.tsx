@@ -2,7 +2,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { updateEventSchema, type UpdateEventInput } from '@photo-platform/validation';
+import { updateEventSchema, type UpdateEventInput } from '@/lib/schemas';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Archive, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

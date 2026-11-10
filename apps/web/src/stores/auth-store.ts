@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import type { AuthSession, AuthUser, AuthBusiness, UserRole } from '@photo-platform/shared-types';
-
-const SUPER_ADMIN = 'SUPER_ADMIN';
+import type { AuthSession, AuthUser, AuthBusiness, UserRole } from '@/types/domain';
 
 interface AuthState {
   accessToken: string | null;
@@ -42,5 +40,5 @@ export const useAuthStore = create<AuthState>((set) => ({
 }));
 
 export function isSuperAdmin(): boolean {
-  return useAuthStore.getState().user?.role === SUPER_ADMIN;
+  return false;
 }

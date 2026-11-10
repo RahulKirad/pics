@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createEventSchema, type CreateEventInput } from '@photo-platform/validation';
+import { createEventSchema, type CreateEventInput } from '@/lib/schemas';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';

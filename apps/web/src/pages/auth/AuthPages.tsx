@@ -2,15 +2,13 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, registerSchema, type LoginInput, type RegisterInput } from '@photo-platform/validation';
+import { loginSchema, registerSchema, type LoginInput, type RegisterInput } from '@/lib/schemas';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
 import { authService } from '@/services/auth';
 import { getErrorMessage } from '@/services/api';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-
-const SUPER_ADMIN = 'SUPER_ADMIN';
 
 function AuthCardChrome({ children }: { children: ReactNode }) {
   return (
@@ -46,13 +44,8 @@ export function LoginPage() {
     setError(null);
     setInfo(null);
     try {
-      const session = await authService.login(data);
-      const redirect = session.user.role === SUPER_ADMIN && from.startsWith('/admin')
-        ? from
-        : session.user.role === SUPER_ADMIN
-          ? '/dashboard'
-          : from;
-      navigate(redirect, { replace: true });
+      await authService.login(data);
+      navigate(from, { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     }

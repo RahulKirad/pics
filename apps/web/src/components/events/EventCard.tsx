@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Image, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { EventStatusBadge } from './EventStatusBadge';
-import type { EventSummary } from '@photo-platform/shared-types';
+import type { EventSummary } from '@/types/domain';
 
 function formatDate(date: string | null) {
   if (!date) return null;

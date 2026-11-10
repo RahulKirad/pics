@@ -1,0 +1,279 @@
+/**
+ * Offline demo when Bolt Database env vars are missing (local Vite dev).
+ * On Bolt Hosting, set VITE_BOLT_DATABASE_URL + VITE_BOLT_DATABASE_ANON_KEY.
+ */
+
+import type {
+  AuthSession,
+  EventSummary,
+  GuestEventPublic,
+  GuestSearchResult,
+  GuestSessionSummary,
+  PhotoSummary,
+} from '@/types/domain';
+import { EventPrivacyMode, EventStatus, PhotoStatus, UserRole } from '@/types/domain';
+import type { FaceEmbedding } from '@/lib/face/browser-face';
+import { cosineSimilarity } from '@/lib/face/browser-face';
+import type { LoginInput, RegisterInput } from '@/lib/schemas';
+
+const USERS_KEY = 'picsharenow:demo:users';
+const EVENTS_KEY = 'picsharenow:demo:events';
+const PHOTOS_KEY = 'picsharenow:demo:photos';
+const EMBEDDINGS_KEY = 'picsharenow:demo:embeddings';
+const GUEST_KEY = 'picsharenow:demo:guest';
+const SESSION_KEY = 'picsharenow:demo:active-session';
+
+type DemoUser = {
+  id: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  businessName: string;
+};
+
+type DemoPhoto = PhotoSummary & { eventId: string; storagePath: string; ownerId: string };
+
+function load<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function save<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function uid() {
+  return crypto.randomUUID();
+}
+
+function token() {
+  return crypto.randomUUID().replace(/-/g, '');
+}
+
+export const localDemo = {
+  register(input: RegisterInput): AuthSession {
+    const users = load<DemoUser[]>(USERS_KEY, []);
+    if (users.some((u) => u.email === input.email)) {
+      throw new Error('Email already registered');
+    }
+    const user: DemoUser = {
+      id: uid(),
+      email: input.email,
+      password: input.password,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      businessName: input.businessName,
+    };
+    users.push(user);
+    save(USERS_KEY, users);
+    const session = this.login({ email: input.email, password: input.password });
+    save(SESSION_KEY, session);
+    return session;
+  },
+
+  login(input: LoginInput): AuthSession {
+    const users = load<DemoUser[]>(USERS_KEY, []);
+    const user = users.find((u) => u.email === input.email && u.password === input.password);
+    if (!user) throw new Error('Invalid email or password');
+    const session = {
+      accessToken: `demo-${user.id}`,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: UserRole.OWNER,
+        emailVerified: true,
+      },
+      business: {
+        id: user.id,
+        name: user.businessName,
+        slug: user.businessName.toLowerCase().replace(/\s+/g, '-').slice(0, 40),
+      },
+      businessRole: UserRole.OWNER,
+    };
+    save(SESSION_KEY, session);
+    return session;
+  },
+
+  loadSession(): AuthSession | null {
+    return load<AuthSession | null>(SESSION_KEY, null);
+  },
+
+  clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+  },
+
+  listEvents(ownerId: string): { items: EventSummary[]; hasMore: false; nextCursor: null } {
+    const events = load<EventSummary[]>(EVENTS_KEY, []).filter((e) => e.businessId === ownerId);
+    return { items: events, hasMore: false, nextCursor: null };
+  },
+
+  createEvent(ownerId: string, _businessName: string, name: string): EventSummary {
+    const events = load<EventSummary[]>(EVENTS_KEY, []);
+    const now = new Date().toISOString();
+    const event: EventSummary = {
+      id: uid(),
+      businessId: ownerId,
+      name,
+      description: null,
+      eventType: null,
+      eventDate: null,
+      location: null,
+      status: EventStatus.ACTIVE,
+      privacyMode: EventPrivacyMode.PRIVATE_PERSONALIZED,
+      downloadEnabled: true,
+      guestUploadEnabled: false,
+      eventToken: token().slice(0, 12),
+      photoCount: 0,
+      faceCount: 0,
+      guestSearchCount: 0,
+      downloadCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    events.push(event);
+    save(EVENTS_KEY, events);
+    return event;
+  },
+
+  getEventById(id: string) {
+    return load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.id === id) ?? null;
+  },
+
+  getPublicEvent(eventToken: string): GuestEventPublic | null {
+    const event = load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken);
+    if (!event) return null;
+    return {
+      name: event.name,
+      description: event.description,
+      eventType: event.eventType,
+      eventDate: event.eventDate,
+      location: event.location,
+      privacyMode: event.privacyMode,
+      downloadEnabled: event.downloadEnabled,
+      guestUploadEnabled: event.guestUploadEnabled,
+      status: event.status,
+      photoCount: event.photoCount,
+      businessName: 'Demo Studio',
+    };
+  },
+
+  listPhotos(eventId: string) {
+    const photos = load<DemoPhoto[]>(PHOTOS_KEY, []).filter((p) => p.eventId === eventId);
+    return { items: photos, hasMore: false, nextCursor: null };
+  },
+
+  async addPhoto(
+    ownerId: string,
+    eventId: string,
+    file: File,
+    embedding: FaceEmbedding,
+  ): Promise<PhotoSummary> {
+    const photos = load<DemoPhoto[]>(PHOTOS_KEY, []);
+    const id = uid();
+    const objectUrl = URL.createObjectURL(file);
+    const photo: DemoPhoto = {
+      id,
+      eventId,
+      ownerId,
+      originalName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      status: PhotoStatus.READY,
+      width: null,
+      height: null,
+      thumbnailUrl: objectUrl,
+      previewUrl: objectUrl,
+      processingError: null,
+      createdAt: new Date().toISOString(),
+      storagePath: `${eventId}/${id}.jpg`,
+    };
+    photos.push(photo);
+    save(PHOTOS_KEY, photos);
+
+    const embeddings = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
+    embeddings[id] = [embedding];
+    save(EMBEDDINGS_KEY, embeddings);
+
+    const events = load<EventSummary[]>(EVENTS_KEY, []);
+    const idx = events.findIndex((e) => e.id === eventId);
+    if (idx >= 0) {
+      events[idx]!.photoCount += 1;
+      events[idx]!.faceCount += 1;
+      save(EVENTS_KEY, events);
+    }
+    return photo;
+  },
+
+  createGuestSession(eventToken: string): GuestSessionSummary {
+    const sessions = load<GuestSessionSummary[]>(GUEST_KEY, []);
+    const session: GuestSessionSummary = {
+      sessionToken: token(),
+      eventToken,
+      consentGiven: false,
+      consentVersion: null,
+      createdAt: new Date().toISOString(),
+    };
+    sessions.push(session);
+    save(GUEST_KEY, sessions);
+    return session;
+  },
+
+  getGuestSession(sessionToken: string) {
+    return load<GuestSessionSummary[]>(GUEST_KEY, []).find((s) => s.sessionToken === sessionToken) ?? null;
+  },
+
+  recordConsent(sessionToken: string) {
+    const sessions = load<GuestSessionSummary[]>(GUEST_KEY, []);
+    const s = sessions.find((x) => x.sessionToken === sessionToken);
+    if (!s) throw new Error('Session not found');
+    s.consentGiven = true;
+    s.consentVersion = '1.0';
+    save(GUEST_KEY, sessions);
+    return { consentGiven: true, consentVersion: '1.0' };
+  },
+
+  matchGuest(eventToken: string, query: FaceEmbedding): GuestSearchResult {
+    const event = load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken);
+    if (!event) throw new Error('Event not found');
+    const photos = load<DemoPhoto[]>(PHOTOS_KEY, []).filter((p) => p.eventId === event.id);
+    const embeddings = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
+
+    const matches = photos
+      .map((photo) => {
+        const faces = embeddings[photo.id] ?? [];
+        const best = faces.reduce((max, emb) => Math.max(max, cosineSimilarity(query, emb)), 0);
+        return { photo, best };
+      })
+      .filter((m) => m.best >= 0.55)
+      .sort((a, b) => b.best - a.best)
+      .map((m) => ({
+        photoId: m.photo.id,
+        thumbnailUrl: m.photo.thumbnailUrl ?? '',
+        previewUrl: m.photo.previewUrl ?? '',
+        viewerUrl: m.photo.previewUrl ?? '',
+        matchScore: m.best,
+        similarity: m.best,
+        originalName: m.photo.originalName,
+      }));
+
+    return {
+      searchId: uid(),
+      status: 'completed',
+      progress: 100,
+      matchCount: matches.length,
+      error: null,
+      matches,
+      favoritePhotoIds: [],
+      downloadEnabled: event.downloadEnabled,
+      shareUrl: `${window.location.origin}/e/${eventToken}`,
+      eventName: event.name,
+    };
+  },
+};
