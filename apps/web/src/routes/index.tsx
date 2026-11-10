@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { PicShareAssistant } from '@/components/chatbot/PicShareAssistant';
 import { MarketingLayout } from '@/layouts/MarketingLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -37,6 +38,18 @@ import { GuestGalleryPage } from '@/pages/guest/GuestGalleryPage';
 import { GuestConsentGuard, GuestSessionGuard } from '@/routes/guest-guards';
 
 const HomePage = lazy(() => import('@/pages/marketing/HomePage').then((m) => ({ default: m.HomePage })));
+const FeaturesPage = lazy(() => import('@/pages/marketing/FeaturesPage').then((m) => ({ default: m.FeaturesPage })));
+const HowItWorksMarketingPage = lazy(() =>
+  import('@/pages/marketing/HowItWorksMarketingPage').then((m) => ({ default: m.HowItWorksMarketingPage })),
+);
+const IntegrationsPage = lazy(() => import('@/pages/marketing/IntegrationsPage').then((m) => ({ default: m.IntegrationsPage })));
+const FaqPage = lazy(() => import('@/pages/marketing/FaqPage').then((m) => ({ default: m.FaqPage })));
+const ForPhotographersPage = lazy(() =>
+  import('@/pages/marketing/ForPhotographersPage').then((m) => ({ default: m.ForPhotographersPage })),
+);
+const ContactPage = lazy(() => import('@/pages/marketing/ContactPage').then((m) => ({ default: m.ContactPage })));
+const PrivacyPage = lazy(() => import('@/pages/marketing/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('@/pages/marketing/TermsPage').then((m) => ({ default: m.TermsPage })));
 const MarketingPage = lazy(() => import('@/pages/marketing/MarketingPage').then((m) => ({ default: m.MarketingPage })));
 
 function PageLoader() {
@@ -51,17 +64,32 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
+function AppShell() {
+  return (
+    <>
+      <Outlet />
+      <PicShareAssistant />
+    </>
+  );
+}
+
 export const router = createBrowserRouter([
+  {
+    element: <AppShell />,
+    children: [
   {
     element: <MarketingLayout />,
     children: [
       { path: '/', element: <LazyPage><HomePage /></LazyPage> },
-      { path: '/features', element: <LazyPage><MarketingPage title="Features" description="Everything you need to deliver personalized photo galleries at scale." /></LazyPage> },
-      { path: '/how-it-works', element: <LazyPage><MarketingPage title="How It Works" description="From upload to personalized gallery in four simple steps." /></LazyPage> },
-      { path: '/for-photographers', element: <LazyPage><MarketingPage title="For Photographers" description="Built for professional photographers and event studios." /></LazyPage> },
+      { path: '/features', element: <LazyPage><FeaturesPage /></LazyPage> },
+      { path: '/how-it-works', element: <LazyPage><HowItWorksMarketingPage /></LazyPage> },
+      { path: '/integrations', element: <LazyPage><IntegrationsPage /></LazyPage> },
+      { path: '/for-photographers', element: <LazyPage><ForPhotographersPage /></LazyPage> },
       { path: '/pricing', element: <LazyPage><MarketingPage title="Pricing" description="Plans for every studio size, from solo photographers to large event teams." /></LazyPage> },
-      { path: '/faq', element: <LazyPage><MarketingPage title="FAQ" description="Common questions about PhotoFlow." /></LazyPage> },
-      { path: '/contact', element: <LazyPage><MarketingPage title="Contact" description="Get in touch with our team." /></LazyPage> },
+      { path: '/faq', element: <LazyPage><FaqPage /></LazyPage> },
+      { path: '/contact', element: <LazyPage><ContactPage /></LazyPage> },
+      { path: '/privacy', element: <LazyPage><PrivacyPage /></LazyPage> },
+      { path: '/terms', element: <LazyPage><TermsPage /></LazyPage> },
     ],
   },
   {
@@ -133,4 +161,6 @@ export const router = createBrowserRouter([
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
 ]);

@@ -135,7 +135,7 @@ export function SubscriptionPage() {
         key: checkout.razorpayKeyId,
         amount: checkout.amount,
         currency: checkout.currency,
-        name: 'PhotoFlow',
+        name: 'PicShareNow',
         description: `${tier} plan (${billingCycle})`,
         order_id: checkout.orderId,
       });
