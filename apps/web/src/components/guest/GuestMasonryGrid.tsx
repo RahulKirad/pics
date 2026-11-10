@@ -1,4 +1,4 @@
-import type { GuestMatchedPhoto } from '@photo-platform/shared-types';
+import type { GuestMatchedPhoto } from '@/types/domain';
 import { Heart } from 'lucide-react';
 import { LazyGuestImage } from './LazyGuestImage';
 
@@ -33,7 +33,7 @@ export function GuestMasonryGrid({ photos, onPhotoClick }: GuestMasonryGridProps
                 className="h-full w-full"
               />
               <span className="absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-                {Math.round(photo.similarity * 100)}%
+                {Math.round((photo.similarity ?? photo.matchScore) * 100)}%
               </span>
               {photo.isFavorite && (
                 <span className="absolute top-2 right-2 rounded-full bg-black/65 p-1.5 text-red-500 backdrop-blur-sm">

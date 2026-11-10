@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Calendar,
   HardDrive,
-  CreditCard,
   User,
   Menu,
   X,
@@ -19,9 +18,8 @@ import { authService } from '@/services/auth';
 const sidebarLinks = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/dashboard/events', icon: Calendar, label: 'Events' },
-  { to: '/dashboard/storage', icon: HardDrive, label: 'Storage' },
-  { to: '/dashboard/subscription', icon: CreditCard, label: 'Subscription' },
   { to: '/dashboard/profile', icon: User, label: 'Profile' },
+  { to: '/debug', icon: HardDrive, label: 'Debug' },
 ];
 
 const mobileNavLinks = sidebarLinks.slice(0, 5);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
-import type { PhotoSummary } from '@photo-platform/shared-types';
+import type { PhotoSummary } from '@/types/domain';
 import { eventsService } from '@/services/events';
 import { photosService } from '@/services/photos';
 import { AuthenticatedImage } from '@/components/photos/AuthenticatedImage';

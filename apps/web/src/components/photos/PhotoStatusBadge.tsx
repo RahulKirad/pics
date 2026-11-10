@@ -1,4 +1,4 @@
-import { PhotoStatus } from '@photo-platform/shared-types';
+import { PhotoStatus } from '@/types/domain';
 import { cn } from '@/lib/utils';
 
 const statusConfig: Record<PhotoStatus, { label: string; className: string }> = {

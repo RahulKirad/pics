@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Download, Heart, Share2, X } from 'lucide-react';
-import type { GuestMatchedPhoto } from '@photo-platform/shared-types';
+import type { GuestMatchedPhoto } from '@/types/domain';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -86,7 +86,7 @@ export function GuestPhotoViewer({
         </p>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
-            {Math.round(photo.similarity * 100)}% match
+            {Math.round((photo.similarity ?? photo.matchScore) * 100)}% match
           </span>
           <Button
             type="button"

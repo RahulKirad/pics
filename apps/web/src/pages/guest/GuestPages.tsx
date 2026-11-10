@@ -19,7 +19,7 @@ export function GuestProcessingPage() {
   });
 
   useEffect(() => {
-    if (searchQuery.data?.status === 'complete') {
+    if (searchQuery.data?.status === 'completed') {
       navigate(`/e/${eventToken}/gallery`, { replace: true });
     }
   }, [searchQuery.data?.status, eventToken, navigate]);

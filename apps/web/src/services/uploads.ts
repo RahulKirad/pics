@@ -1,118 +1,70 @@
-import type { ApiResponse } from '@photo-platform/shared-types';
-import { api } from './api';
-
-export interface UploadSessionResponse {
-  isDuplicate: boolean;
-  existingPhotoId?: string;
-  message?: string;
-  sessionId?: string;
-  uploadMode?: 'vps_chunked' | 's3_presigned' | 's3_multipart';
-  chunkSize?: number;
-  totalChunks?: number;
-  presignedUrls?: string[];
-  s3UploadId?: string;
-  expiresAt?: string;
-}
+import { getBoltClient } from '@/lib/bolt/client';
+import { getBoltEnv } from '@/lib/bolt/config';
+import { extractPrimaryFaceEmbedding } from '@/lib/face/browser-face';
+import { localDemo } from '@/lib/bolt/local-demo';
+import { useAuthStore } from '@/stores/auth-store';
+import { PhotoStatus } from '@/types/domain';
+import { logDebug } from '@/lib/bolt/debug-log';
 
 export const uploadsService = {
-  async createSession(payload: {
-    eventId: string;
-    originalName: string;
-    mimeType: string;
-    fileSize: number;
-    checksum: string;
-    folderId?: string;
-  }) {
-    const { data } = await api.post<ApiResponse<UploadSessionResponse>>('/uploads/sessions', payload);
-    if (!data.success) throw new Error(data.error.message);
-    return data.data;
-  },
-
-  async uploadChunk(sessionId: string, chunkIndex: number, chunk: Blob) {
-    const { data } = await api.put<ApiResponse<{ uploaded: boolean }>>(
-      `/uploads/sessions/${sessionId}/chunks/${chunkIndex}`,
-      chunk,
-      { headers: { 'Content-Type': 'application/octet-stream' } },
-    );
-    if (!data.success) throw new Error(data.error.message);
-    return data.data;
-  },
-
-  async completeUpload(sessionId: string, parts?: { partNumber: number; etag: string }[]) {
-    const { data } = await api.post<ApiResponse<{ photoId: string }>>(
-      `/uploads/sessions/${sessionId}/complete`,
-      { parts },
-    );
-    if (!data.success) throw new Error(data.error.message);
-    return data.data;
-  },
-
-  async cancelUpload(sessionId: string) {
-    await api.delete(`/uploads/sessions/${sessionId}`);
-  },
-
   async uploadFile(
     file: File,
     eventId: string,
     onProgress?: (progress: number) => void,
-    folderId?: string,
+    _folderId?: string,
   ): Promise<{ photoId?: string; duplicate?: boolean }> {
-    const { computeFileChecksum, CHUNK_SIZE } = await import('@/lib/upload-utils');
-    const checksum = await computeFileChecksum(file);
+    const ownerId = useAuthStore.getState().user?.id;
+    if (!ownerId) throw new Error('Not signed in');
 
-    const session = await uploadsService.createSession({
-      eventId,
-      originalName: file.name,
-      mimeType: file.type,
-      fileSize: file.size,
-      checksum,
-      folderId,
+    onProgress?.(5);
+    const embedding = await extractPrimaryFaceEmbedding(file);
+    onProgress?.(35);
+
+    if (!getBoltEnv().configured) {
+      const photo = await localDemo.addPhoto(ownerId, eventId, file, embedding);
+      onProgress?.(100);
+      return { photoId: photo.id };
+    }
+
+    const env = getBoltEnv();
+    const supabase = getBoltClient()!;
+    const photoId = crypto.randomUUID();
+    const storagePath = `${ownerId}/${eventId}/${photoId}.jpg`;
+
+    onProgress?.(50);
+    const { error: uploadError } = await supabase.storage.from(env.bucket).upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || 'image/jpeg',
     });
+    if (uploadError) {
+      logDebug('error', 'Storage upload failed', { error: uploadError, context: { storagePath } });
+      throw uploadError;
+    }
+    onProgress?.(75);
 
-    if (session.isDuplicate) {
-      return { duplicate: true, photoId: session.existingPhotoId };
+    const { error: rowError } = await supabase.from('photos').insert({
+      id: photoId,
+      event_id: eventId,
+      owner_id: ownerId,
+      original_name: file.name,
+      mime_type: file.type,
+      file_size: file.size,
+      storage_path: storagePath,
+      status: PhotoStatus.READY,
+    });
+    if (rowError) throw rowError;
+
+    const { error: faceError } = await supabase.rpc('store_photo_embeddings', {
+      p_photo_id: photoId,
+      p_embeddings: [embedding],
+    });
+    if (faceError) {
+      logDebug('error', 'store_photo_embeddings failed', { error: faceError, context: { photoId } });
+      throw faceError;
     }
 
-    const sessionId = session.sessionId!;
-
-    if (session.uploadMode === 's3_presigned' && session.presignedUrls?.[0]) {
-      await fetch(session.presignedUrls[0], {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      });
-      onProgress?.(100);
-    } else if (session.uploadMode === 's3_multipart' && session.presignedUrls) {
-      const parts: { partNumber: number; etag: string }[] = [];
-      const chunkSize = session.chunkSize ?? CHUNK_SIZE;
-      for (let i = 0; i < session.presignedUrls.length; i++) {
-        const start = i * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-        const chunk = file.slice(start, end);
-        const response = await fetch(session.presignedUrls[i], {
-          method: 'PUT',
-          body: chunk,
-        });
-        const etag = response.headers.get('ETag')?.replace(/"/g, '') ?? '';
-        parts.push({ partNumber: i + 1, etag });
-        onProgress?.(Math.round(((i + 1) / session.presignedUrls.length) * 90));
-      }
-      const result = await uploadsService.completeUpload(sessionId, parts);
-      onProgress?.(100);
-      return { photoId: result.photoId };
-    } else {
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-        await uploadsService.uploadChunk(sessionId, i, chunk);
-        onProgress?.(Math.round(((i + 1) / totalChunks) * 90));
-      }
-    }
-
-    const result = await uploadsService.completeUpload(sessionId);
     onProgress?.(100);
-    return { photoId: result.photoId };
+    return { photoId };
   },
 };

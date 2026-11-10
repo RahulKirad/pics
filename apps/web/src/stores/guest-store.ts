@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { GuestSessionSummary } from '@photo-platform/shared-types';
+import type { GuestSessionSummary } from '@/types/domain';
 
 interface GuestState {
   eventToken: string | null;
@@ -33,8 +33,8 @@ export const useGuestStore = create<GuestState>()(
         set({
           eventToken: session.eventToken,
           sessionToken: session.sessionToken,
-          expiresAt: session.expiresAt,
-          hasConsent: session.hasConsent,
+          expiresAt: session.expiresAt ?? null,
+          hasConsent: session.hasConsent ?? session.consentGiven,
           consentVersion: session.consentVersion,
         }),
       setConsent: (consentVersion) =>
@@ -46,9 +46,10 @@ export const useGuestStore = create<GuestState>()(
       clear: () => set(initialState),
       isSessionValid: (eventToken) => {
         const state = get();
-        if (!state.sessionToken || !state.expiresAt) return false;
+        if (!state.sessionToken) return false;
         if (eventToken && state.eventToken !== eventToken) return false;
-        return new Date(state.expiresAt).getTime() > Date.now();
+        if (state.expiresAt) return new Date(state.expiresAt).getTime() > Date.now();
+        return true;
       },
     }),
     {

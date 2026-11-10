@@ -1,4 +1,4 @@
-import type { GuestMatchedPhoto } from '@photo-platform/shared-types';
+import type { GuestMatchedPhoto } from '@/types/domain';
 
 export async function downloadGuestPhoto(
   sessionToken: string,

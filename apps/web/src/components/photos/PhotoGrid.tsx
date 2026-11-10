@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, RefreshCw } from 'lucide-react';
-import type { PhotoSummary } from '@photo-platform/shared-types';
-import { PhotoStatus } from '@photo-platform/shared-types';
+import type { PhotoSummary } from '@/types/domain';
+import { PhotoStatus } from '@/types/domain';
 import { photosService } from '@/services/photos';
 import { AuthenticatedImage } from './AuthenticatedImage';
 import { PhotoStatusBadge } from './PhotoStatusBadge';

@@ -155,7 +155,7 @@ export function EventDashboardPage() {
             </div>
             <div>
               <p className="text-muted-foreground">Gallery expires</p>
-              <p className="font-medium">{formatDate(event.expiryDate)}</p>
+              <p className="font-medium">{formatDate(event.expiryDate ?? null)}</p>
             </div>
           </CardContent>
         </Card>
@@ -202,6 +202,7 @@ export function EventDashboardPage() {
       <QrCodeModal
         eventId={event.id}
         eventName={event.name}
+        guestUrl={guestUrl}
         open={qrOpen}
         onClose={() => setQrOpen(false)}
       />

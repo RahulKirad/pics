@@ -1,27 +1,18 @@
 {
-  "name": "ai-photo-platform",
-  "version": "0.1.0",
+  "name": "picsharenow",
+  "version": "0.2.0",
   "private": true,
-  "description": "AI Photo Sharing Platform for photographers and event studios",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "PicShareNow — Bolt-hosted event photo sharing (browser + Bolt Database)",
   "scripts": {
-    "dev": "npm run dev --workspace=@photo-platform/web & npm run dev --workspace=@photo-platform/api",
-    "dev:web": "npm run dev --workspace=@photo-platform/web",
-    "dev:api": "npm run dev --workspace=@photo-platform/api",
-    "dev:worker": "npm run dev --workspace=@photo-platform/worker",
-    "build": "npm run build --workspace=@photo-platform/shared-types --workspace=@photo-platform/validation --workspace=@photo-platform/config --workspace=@photo-platform/queues --workspace=@photo-platform/ai-client --workspace=@photo-platform/image-processing --workspace=@photo-platform/vector-store && npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "test:integration": "npm run test:integration --workspace=@photo-platform/api",
-    "load-test": "node scripts/load-test.mjs",
-    "db:generate": "npm run db:generate --workspace=@photo-platform/api",
-    "db:migrate": "npm run db:migrate --workspace=@photo-platform/api",
-    "db:push": "npm run db:push --workspace=@photo-platform/api"
+    "dev": "npm run dev --workspace=@photo-platform/web",
+    "dev:clean": "npm run dev:clean --workspace=@photo-platform/web",
+    "build": "npm run build --workspace=@photo-platform/web",
+    "preview": "npm run preview --workspace=@photo-platform/web",
+    "typecheck": "npm run typecheck --workspace=@photo-platform/web"
   },
+  "workspaces": [
+    "apps/web"
+  ],
   "engines": {
     "node": ">=20.0.0"
   }

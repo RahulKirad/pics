@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { EventStatus } from '@photo-platform/shared-types';
+import type { EventStatus } from '@/types/domain';
 
 const statusConfig: Record<EventStatus, { label: string; variant: 'default' | 'secondary' | 'outline' | 'success' | 'warning' | 'destructive' }> = {
   DRAFT: { label: 'Draft', variant: 'secondary' },
