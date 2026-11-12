@@ -13,6 +13,7 @@ interface UploadFile {
   progress: number;
   status: 'pending' | 'uploading' | 'completed' | 'duplicate' | 'failed';
   error?: string;
+  facesDetected?: number;
 }
 
 interface UploadDrawerProps {
@@ -50,7 +51,11 @@ export function UploadDrawer({ eventId, open, onClose, onComplete }: UploadDrawe
         if (result.duplicate) {
           updateFile(item.id, { status: 'duplicate', progress: 100 });
         } else {
-          updateFile(item.id, { status: 'completed', progress: 100 });
+          updateFile(item.id, {
+            status: 'completed',
+            progress: 100,
+            facesDetected: result.facesDetected,
+          });
         }
       } catch (err) {
         updateFile(item.id, {
@@ -174,6 +179,18 @@ export function UploadDrawer({ eventId, open, onClose, onComplete }: UploadDrawe
                         {item.status === 'duplicate' && (
                           <p className="text-xs text-warning mt-0.5">Already uploaded</p>
                         )}
+                        {item.status === 'completed' && item.facesDetected === 0 && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            Uploaded — indexing found no faces; photo is still in the gallery.
+                          </p>
+                        )}
+                        {item.status === 'completed' &&
+                          item.facesDetected !== undefined &&
+                          item.facesDetected > 0 && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Indexed {item.facesDetected} face{item.facesDetected === 1 ? '' : 's'} for matching
+                            </p>
+                          )}
                         {item.status === 'failed' && item.error && (
                           <p className="text-xs text-destructive mt-0.5">{item.error}</p>
                         )}
