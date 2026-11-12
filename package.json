@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=@photo-platform/web",
     "dev:clean": "npm run dev:clean --workspace=@photo-platform/web",
-    "build": "npm run build --workspace=@photo-platform/web",
+    "build": "npm run build --workspace=@photo-platform/web && node -e \"require('fs').cpSync('apps/web/dist','dist',{recursive:true})\"",
     "preview": "npm run preview --workspace=@photo-platform/web",
     "typecheck": "npm run typecheck --workspace=@photo-platform/web"
   },
