@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+/** Values from `<input type="datetime-local" />` (not strict ISO). */
+function optionalDateTimeLocal(message = 'Pick a valid date and time, or leave this field empty.') {
+  return z
+    .string()
+    .optional()
+    .refine((v) => v === undefined || v === '' || !Number.isNaN(new Date(v).getTime()), { message });
+}
+
 export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
@@ -17,9 +25,9 @@ export const createEventSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   eventType: z.string().max(100).optional(),
-  eventDate: z.string().datetime().optional(),
+  eventDate: optionalDateTimeLocal(),
   location: z.string().max(500).optional(),
-  expiryDate: z.string().datetime().optional(),
+  expiryDate: optionalDateTimeLocal('Pick a valid gallery expiry date and time, or leave empty.'),
   privacyMode: z
     .enum(['PRIVATE_PERSONALIZED', 'CONTROLLED_GALLERY', 'PUBLIC_GALLERY'])
     .default('PRIVATE_PERSONALIZED'),

@@ -91,10 +91,18 @@ export function CreateEventPage() {
               <div className="space-y-2">
                 <label htmlFor="eventDate" className="text-sm font-medium">Event date</label>
                 <Input id="eventDate" type="datetime-local" {...register('eventDate')} />
+                <p className="text-xs text-muted-foreground">Optional — use the picker; any date works. Leave blank if unsure.</p>
+                {errors.eventDate && (
+                  <p className="text-sm text-destructive" role="alert">{errors.eventDate.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label htmlFor="expiryDate" className="text-sm font-medium">Gallery expiry</label>
                 <Input id="expiryDate" type="datetime-local" {...register('expiryDate')} />
+                <p className="text-xs text-muted-foreground">Optional — when guests should lose access (if you use expiry later).</p>
+                {errors.expiryDate && (
+                  <p className="text-sm text-destructive" role="alert">{errors.expiryDate.message}</p>
+                )}
               </div>
             </div>
 
