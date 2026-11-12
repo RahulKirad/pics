@@ -173,7 +173,7 @@ export const localDemo = {
     ownerId: string,
     eventId: string,
     file: File,
-    embedding: FaceEmbedding,
+    embeddings: FaceEmbedding[],
   ): Promise<PhotoSummary> {
     const photos = load<DemoPhoto[]>(PHOTOS_KEY, []);
     const id = uid();
@@ -190,22 +190,23 @@ export const localDemo = {
       height: null,
       thumbnailUrl: objectUrl,
       previewUrl: objectUrl,
-      processingError: null,
+      processingError:
+        embeddings.length === 0 ? 'Photo saved. No faces indexed — guest matching may skip it.' : null,
       createdAt: new Date().toISOString(),
       storagePath: `${eventId}/${id}.jpg`,
     };
     photos.push(photo);
     save(PHOTOS_KEY, photos);
 
-    const embeddings = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
-    embeddings[id] = [embedding];
-    save(EMBEDDINGS_KEY, embeddings);
+    const store = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
+    store[id] = embeddings;
+    save(EMBEDDINGS_KEY, store);
 
     const events = load<EventSummary[]>(EVENTS_KEY, []);
     const idx = events.findIndex((e) => e.id === eventId);
     if (idx >= 0) {
       events[idx]!.photoCount += 1;
-      events[idx]!.faceCount += 1;
+      events[idx]!.faceCount += embeddings.length;
       save(EVENTS_KEY, events);
     }
     return photo;
