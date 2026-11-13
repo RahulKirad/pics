@@ -13,6 +13,7 @@ import { getBoltEnv } from '@/lib/bolt/config';
 import { localDemo } from '@/lib/bolt/local-demo';
 import { extractPrimaryFaceEmbedding, validateSelfieBlob } from '@/lib/face/browser-face';
 import { logDebug } from '@/lib/bolt/debug-log';
+import { toPgVector } from '@/lib/bolt/vector-rpc';
 
 function base64ToBlob(base64: string, mime = 'image/jpeg'): Blob {
   const data = base64.includes(',') ? base64.split(',')[1]! : base64;
@@ -118,14 +119,14 @@ export const guestService = {
     const embedding = await extractPrimaryFaceEmbedding(blob);
 
     if (!getBoltEnv().configured) {
-      const result = localDemo.matchGuest(session.eventToken, embedding);
+      const result = await localDemo.matchGuest(session.eventToken, embedding);
       localStorage.setItem(`picsharenow:demo:search:${sessionToken}`, JSON.stringify(result));
       return { searchId: result.searchId };
     }
 
     const { data, error } = await getBoltClient()!.rpc('match_guest_faces', {
       p_event_token: session.eventToken,
-      p_query: embedding,
+      p_query: toPgVector(embedding),
     });
     if (error) {
       logDebug('error', 'match_guest_faces failed', { error, context: { event: session.eventToken } });

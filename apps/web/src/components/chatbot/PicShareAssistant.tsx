@@ -48,6 +48,7 @@ function buildSystemPrompt(isAuthenticated: boolean, pathname: string): string {
 
 export function PicShareAssistant() {
   const { pathname } = useLocation();
+  const isGuestFlow = pathname.startsWith('/e/');
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
 
@@ -194,6 +195,8 @@ export function PicShareAssistant() {
       setError(err instanceof Error ? err.message : 'Could not load photo.');
     }
   };
+
+  if (isGuestFlow) return null;
 
   if (!open) {
     return <AssistantFab onOpen={() => setOpen(true)} isAuthenticated={isAuthenticated} />;

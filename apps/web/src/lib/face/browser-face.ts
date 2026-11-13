@@ -76,7 +76,44 @@ function scaleForDetection(source: HTMLCanvasElement, maxDim = 1920): HTMLCanvas
   return canvas;
 }
 
-type DetectedFace = { embedding: FaceEmbedding; area: number; score: number };
+type FaceBox = { x: number; y: number; width: number; height: number };
+
+type DetectedFace = {
+  embedding: FaceEmbedding;
+  area: number;
+  score: number;
+  box: FaceBox;
+};
+
+function cropFaceAvatar(source: HTMLCanvasElement, box: FaceBox, scale: number): string {
+  const x = box.x * scale;
+  const y = box.y * scale;
+  const w = box.width * scale;
+  const h = box.height * scale;
+  const pad = Math.max(w, h) * 0.25;
+  const size = Math.max(w, h) + pad * 2;
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  let sx = cx - size / 2;
+  let sy = cy - size / 2;
+  const sw = size;
+  const sh = size;
+  sx = Math.max(0, Math.min(source.width - sw, sx));
+  sy = Math.max(0, Math.min(source.height - sh, sy));
+
+  const out = document.createElement('canvas');
+  const edge = 128;
+  out.width = edge;
+  out.height = edge;
+  const ctx = out.getContext('2d');
+  if (!ctx) return '';
+  ctx.beginPath();
+  ctx.arc(edge / 2, edge / 2, edge / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(source, sx, sy, sw, sh, 0, 0, edge, edge);
+  return out.toDataURL('image/jpeg', 0.9);
+}
 
 async function detectFaces(
   api: NonNullable<typeof faceApi>,
@@ -85,7 +122,10 @@ async function detectFaces(
   const faces: DetectedFace[] = [];
 
   const addFrom = (
-    detections: Array<{ detection: { box: { width: number; height: number }; score?: number }; descriptor: Float32Array }>,
+    detections: Array<{
+      detection: { box: FaceBox; score?: number };
+      descriptor: Float32Array;
+    }>,
   ) => {
     for (const d of detections) {
       const box = d.detection.box;
@@ -93,6 +133,7 @@ async function detectFaces(
         embedding: Array.from(d.descriptor),
         area: box.width * box.height,
         score: d.detection.score ?? 0.5,
+        box,
       });
     }
   };
@@ -122,12 +163,27 @@ async function detectFaces(
   return faces;
 }
 
-/** All face embeddings found (event photos — group shots, distant faces). */
-export async function extractFaceEmbeddingsFromBlob(blob: Blob): Promise<FaceEmbedding[]> {
+export type FaceWithAvatar = {
+  embedding: FaceEmbedding;
+  avatarDataUrl: string;
+};
+
+/** Detect faces, crop circular avatars, and return embeddings. */
+export async function extractFacesWithCrops(blob: Blob): Promise<FaceWithAvatar[]> {
   const api = await ensureFaceApi();
   const full = await loadImageForDetection(blob);
   const input = scaleForDetection(full);
+  const scale = input.width > 0 ? full.width / input.width : 1;
   const faces = await detectFaces(api, input);
+  return faces.map((f) => ({
+    embedding: f.embedding,
+    avatarDataUrl: cropFaceAvatar(full, f.box, scale),
+  }));
+}
+
+/** All face embeddings found (event photos — group shots, distant faces). */
+export async function extractFaceEmbeddingsFromBlob(blob: Blob): Promise<FaceEmbedding[]> {
+  const faces = await extractFacesWithCrops(blob);
   return faces.map((f) => f.embedding);
 }
 

@@ -28,7 +28,23 @@ VITE_GEMINI_THINKING_LEVEL=low
 Bolt also accepts legacy names `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 
 5. Build command: `npm run build --workspace=@photo-platform/web` or from `apps/web`: `npm run build`.
-6. After deploy, open **`/debug`** and copy the JSON bundle if anything fails.
+6. After deploy, open **`/debug`** → **Run hosted smoke test**, then copy the JSON bundle if anything fails.
+
+## Hosted feature parity (Bolt publish)
+
+These work the same in **local demo** and **hosted Bolt** (when env vars are set):
+
+| Feature | Hosted notes |
+|---------|----------------|
+| Auth, events, upload | Supabase auth + `photos` + `event-photos` storage |
+| Photo previews | Signed URLs (private bucket) or public URLs |
+| Delete photos | Storage + DB row + browser face index |
+| Face detect on upload | Browser `face-api`; embeddings via `store_photo_embeddings` RPC |
+| Faces KPI → people grid | Face crops in **IndexedDB** on this device (rescan if new browser) |
+| Slideshow | Uses preview/signed URLs |
+| Guest selfie match | `match_guest_faces` RPC + public photo URLs for gallery |
+
+**Required:** Run [`bolt/schema.sql`](bolt/schema.sql), create bucket **`event-photos`**, grant public read if guests should load photos without auth.
 
 ## Local dev without Bolt
 

@@ -1,10 +1,12 @@
 import { getBoltClient } from '@/lib/bolt/client';
 import { getBoltEnv } from '@/lib/bolt/config';
-import { extractFaceEmbeddingsFromBlob } from '@/lib/face/browser-face';
+import { extractFacesWithCrops } from '@/lib/face/browser-face';
+import { replacePhotoFaceRecords } from '@/lib/face/face-index';
 import { localDemo } from '@/lib/bolt/local-demo';
 import { useAuthStore } from '@/stores/auth-store';
 import { PhotoStatus } from '@/types/domain';
 import { logDebug } from '@/lib/bolt/debug-log';
+import { embeddingsForStoreRpc } from '@/lib/bolt/vector-rpc';
 
 export type UploadFileResult = {
   photoId?: string;
@@ -27,15 +29,19 @@ export const uploadsService = {
 
     onProgress?.(8);
 
+    let faces: Awaited<ReturnType<typeof extractFacesWithCrops>> = [];
+    try {
+      faces = await extractFacesWithCrops(file);
+    } catch (err) {
+      logDebug('warn', 'Face indexing failed', { error: err, context: { file: file.name } });
+    }
+    const embeddings = faces.map((f) => f.embedding);
+    onProgress?.(40);
+
     if (!getBoltEnv().configured) {
-      let embeddings: number[][] = [];
-      try {
-        embeddings = await extractFaceEmbeddingsFromBlob(file);
-      } catch (err) {
-        logDebug('warn', 'Face indexing failed (demo)', { error: err, context: { file: file.name } });
-      }
       onProgress?.(55);
       const photo = await localDemo.addPhoto(ownerId, eventId, file, embeddings);
+      await replacePhotoFaceRecords(eventId, photo.id, faces);
       onProgress?.(100);
       return { photoId: photo.id, facesDetected: embeddings.length };
     }
@@ -57,16 +63,7 @@ export const uploadsService = {
     }
     onProgress?.(45);
 
-    let embeddings: number[][] = [];
-    let processingError: string | null = null;
-    try {
-      embeddings = await extractFaceEmbeddingsFromBlob(file);
-      if (embeddings.length === 0) processingError = NO_FACES_NOTE;
-    } catch (err) {
-      processingError =
-        err instanceof Error ? err.message : 'Photo saved; face indexing failed — try re-uploading.';
-      logDebug('warn', 'Face indexing failed', { error: err, context: { photoId, file: file.name } });
-    }
+    const processingError: string | null = faces.length === 0 ? NO_FACES_NOTE : null;
     onProgress?.(75);
 
     const { error: rowError } = await supabase.from('photos').insert({
@@ -85,7 +82,7 @@ export const uploadsService = {
     if (embeddings.length > 0) {
       const { error: faceError } = await supabase.rpc('store_photo_embeddings', {
         p_photo_id: photoId,
-        p_embeddings: embeddings,
+        p_embeddings: embeddingsForStoreRpc(embeddings),
       });
       if (faceError) {
         logDebug('error', 'store_photo_embeddings failed', { error: faceError, context: { photoId } });
@@ -95,6 +92,8 @@ export const uploadsService = {
           .eq('id', photoId);
       }
     }
+
+    await replacePhotoFaceRecords(eventId, photoId, faces);
 
     onProgress?.(100);
     return { photoId, facesDetected: embeddings.length };

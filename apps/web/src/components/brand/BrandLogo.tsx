@@ -4,9 +4,10 @@ import { cn } from '@/lib/utils';
 export const BRAND_LOGO_SRC = '/picsharenow-logo.jpg';
 
 const SIZE_CLASS = {
-  sm: 'h-9 max-w-[168px]',
-  md: 'h-10 max-w-[200px] md:h-11 md:max-w-[220px]',
-  lg: 'h-12 max-w-[240px] md:h-14 md:max-w-[280px]',
+  xs: 'h-8 max-w-[120px] sm:max-w-[140px]',
+  sm: 'h-9 max-w-[148px] sm:max-w-[168px]',
+  md: 'h-10 max-w-[168px] sm:max-w-[200px] md:h-11 md:max-w-[220px]',
+  lg: 'h-12 max-w-[200px] sm:max-w-[240px] md:h-14 md:max-w-[280px]',
 } as const;
 
 type BrandLogoProps = {

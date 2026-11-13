@@ -80,11 +80,11 @@ export function GuestPhotoViewer({
       aria-modal="true"
       aria-label="Photo viewer"
     >
-      <header className="flex items-center justify-between px-4 py-3 safe-top">
+      <header className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 safe-top safe-x sm:px-4">
         <p className="text-sm text-white/80">
           {index + 1} / {photos.length}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-1 sm:gap-2">
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white">
             {Math.round((photo.similarity ?? photo.matchScore) * 100)}% match
           </span>

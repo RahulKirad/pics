@@ -94,41 +94,42 @@ export function GuestGalleryPage() {
   const savedCount = matches.filter((photo) => photo.isFavorite).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 py-4 safe-top">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold">Your Photos</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+    <div className="min-h-dvh bg-background">
+      <header className="z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 safe-x">
+        <div className="page-x py-3 sm:py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-muted-foreground">
               {isLoading
                 ? 'Loading your personalized gallery…'
                 : matches.length > 0
                   ? `${matches.length} photo${matches.length === 1 ? '' : 's'} matched to you`
                   : 'No matching photos yet'}
             </p>
-            {shareMessage && <p className="text-xs text-primary mt-1">{shareMessage}</p>}
+            {shareMessage && <p className="mt-1 text-xs text-primary">{shareMessage}</p>}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
             <button
               type="button"
               onClick={() => void handleShare()}
-              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-              aria-label="Share event"
+              className={cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'h-10 w-10')}
+              aria-label="Share gallery"
             >
               <Share2 className="h-4 w-4" />
             </button>
             <Link
               to={`/e/${eventToken}/selfie`}
-              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'h-10 gap-1.5 px-3')}
             >
-              <Camera className="h-4 w-4" />
-              New selfie
+              <Camera className="h-4 w-4 shrink-0" />
+              <span className="hidden min-[400px]:inline">New selfie</span>
+              <span className="min-[400px]:hidden">Selfie</span>
             </Link>
           </div>
         </div>
 
         {matches.length > 0 && (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
             <button
               type="button"
               onClick={() => setFilter('all')}
@@ -151,6 +152,7 @@ export function GuestGalleryPage() {
             </button>
           </div>
         )}
+        </div>
       </header>
 
       {isLoading ? (
@@ -210,7 +212,7 @@ export function GuestGalleryPage() {
         )}
       </AnimatePresence>
 
-      <footer className="px-4 py-8 text-center">
+      <footer className="page-x py-8 pb-12 text-center safe-bottom">
         <button
           type="button"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"

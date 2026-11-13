@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PicShareNow | Find My Photos</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#17171b;background:#fff;min-height:100vh}
+header{height:285px;text-align:center;padding:45px 20px 25px;background:linear-gradient(#f7f7f9,#fff);border-top:1px solid #e5e5e8}
+.camera{width:84px;height:84px;border:1px solid #e2e2e7;border-radius:50%;display:grid;place-items:center;margin:0 auto 22px;background:#fff}
+.camera svg{width:42px;height:42px;fill:none;stroke:#111;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.studio{font-size:15px;color:#777984;margin:0 0 10px}h1{font-size:32px;letter-spacing:-1px;margin:0 0 13px}.count{color:#777984;font-size:15px}
+.gallery{width:100%;margin:34px 0 42px;overflow:hidden;position:relative}
+.gallery:before,.gallery:after{content:"";position:absolute;top:0;bottom:0;width:7%;z-index:2;pointer-events:none}
+.gallery:before{left:0;background:linear-gradient(90deg,#fff,transparent)}
+.gallery:after{right:0;background:linear-gradient(270deg,#fff,transparent)}
+.carousel-track{display:flex;gap:18px;width:max-content;animation:gallery-scroll 34s linear infinite;will-change:transform}
+.gallery:hover .carousel-track{animation-play-state:paused}
+.photo{flex:0 0 285px;width:285px;height:205px;position:relative;overflow:hidden;border-radius:12px;background:#f0f0f3;box-shadow:0 4px 16px #17171b12}
+.photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s}
+.photo:hover img{transform:scale(1.06)}.photo:after{content:"";position:absolute;inset:50% 0 0;background:linear-gradient(transparent,#0008)}
+.photo span{position:absolute;z-index:1;bottom:13px;left:15px;color:white;font-size:12px;font-weight:bold;letter-spacing:.3px}
+@keyframes gallery-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.carousel-track{animation:none}}
+.bottom{width:min(478px,calc(100% - 40px));margin:25px auto 32px;text-align:center}.helper{font-size:15px;line-height:1.65;color:#777984;margin:0 0 25px}
+.primary{width:100%;height:52px;border:0;border-radius:7px;background:#19191d;color:#fff;font-size:16px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:.2s}
+.primary:hover{background:#303036;transform:translateY(-1px)}.primary svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.privacy{font-size:12px;color:#858792;margin:22px 0 0;line-height:1.5}
+.fab{position:fixed;right:22px;bottom:20px;width:55px;height:55px;border:0;border-radius:50%;background:linear-gradient(135deg,#4639d8,#a51fd0 55%,#f20a78);color:#fff;box-shadow:0 5px 15px #6f2ac044;cursor:pointer;font-size:22px}
+.overlay{display:none;position:fixed;inset:0;background:#1118;align-items:center;justify-content:center;padding:18px;z-index:5}.overlay.open{display:flex}
+.dialog{width:min(450px,100%);background:#fff;border-radius:15px;padding:25px;position:relative;box-shadow:0 20px 70px #0003}.dialog h2{font-size:21px;margin:0 0 8px}.dialog p{font-size:13px;line-height:1.5;color:#777984}.close{position:absolute;right:14px;top:12px;border:0;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:19px}
+.preview{height:245px;background:#f2f2f5;border-radius:10px;display:grid;place-items:center;margin:16px 0;color:#858792;font-size:13px;text-align:center;padding:15px}.preview video{display:none;width:100%;height:100%;object-fit:cover}
+.actions{display:flex;gap:10px}.actions button{height:44px;flex:1;border:1px solid #e5e5e9;border-radius:8px;background:#fff;font-weight:bold;cursor:pointer}.actions .dark{background:#19191d;color:#fff;border-color:#19191d}
+#file{display:none}.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;background:#222;color:white;padding:11px 16px;border-radius:8px;font-size:12px;transition:.2s;z-index:9;max-width:90%;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){header{height:260px;padding-top:35px}h1{font-size:27px}.gallery{margin:20px 0 30px}.carousel-track{gap:11px;animation-duration:27s}.photo{flex-basis:230px;width:230px;height:170px}.bottom{margin-top:24px}.helper{font-size:13px}.fab{right:14px;bottom:14px;width:50px;height:50px}}
+@media(max-width:380px){.gallery{grid-template-columns:1fr}.photo{aspect-ratio:16/10}}
+</style>
+</head>
+<body>
+<header>
+  <div class="camera"><svg viewBox="0 0 48 48"><path d="M8 15h7l3-4h12l3 4h7a3 3 0 0 1 3 3v17a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V18a3 3 0 0 1 3-3Z"/><circle cx="24" cy="26" r="7.5"/></svg></div>
+  <p class="studio">Demo Studio</p><h1>Rahul Ashok Kirad</h1><div class="count">▧ &nbsp;6 photos in gallery</div>
+</header>
+<section class="gallery" aria-label="Demo event photographs slideshow">
+  <div class="carousel-track">
+    <div class="photo"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80" alt="Wedding celebration" loading="lazy"><span>Wedding moments</span></div>
+    <div class="photo"><img src="https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=900&q=80" alt="Wedding couple" loading="lazy"><span>The celebration</span></div>
+    <div class="photo"><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=900&q=80" alt="Wedding portrait" loading="lazy"><span>Beautiful portraits</span></div>
+    <div class="photo"><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?auto=format&fit=crop&w=900&q=80" alt="Wedding decor" loading="lazy"><span>Details to remember</span></div>
+    <div class="photo"><img src="https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=900&q=80" alt="Friends celebrating" loading="lazy"><span>Together, always</span></div>
+    <div class="photo"><img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=900&q=80" alt="Wedding reception" loading="lazy"><span>A day to remember</span></div>
+    <!-- Duplicate set creates a seamless continuous loop -->
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>Wedding moments</span></div>
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>The celebration</span></div>
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>Beautiful portraits</span></div>
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1465495976277-4387d4b0e4a6?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>Details to remember</span></div>
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>Together, always</span></div>
+    <div class="photo" aria-hidden="true"><img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=900&q=80" alt="" loading="lazy"><span>A day to remember</span></div>
+  </div>
+</section>
+<section class="bottom">
+  <p class="helper">Find your photos instantly with a quick selfie. No account required<br> — your face data is used only to match photos from this event.</p>
+  <button class="primary" id="find"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/><circle cx="12" cy="12" r="3.2"/></svg>Find My Photos</button>
+  <p class="privacy">By continuing, you will be asked to review and accept our privacy notice.</p>
+</section>
+<button class="fab" id="help" aria-label="Help">✣</button>
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="dialogTitle"><div class="dialog">
+  <button class="close" id="close" aria-label="Close">×</button><h2 id="dialogTitle">Find your event photos</h2><p>Take a quick selfie so PicShareNow can find photos of you in this event gallery.</p>
+  <div class="preview" id="preview"><span id="hint">Camera preview will appear here</span><video id="video" autoplay playsinline></video></div>
+  <div class="actions"><button id="upload">Upload selfie</button><button class="dark" id="cameraBtn">Use camera</button></div>
+  <input id="file" type="file" accept="image/*" capture="user"><p class="privacy">Your selfie is used only for matching photos in this event. Camera access requires your permission.</p>
+</div></div><div class="toast" id="toast"></div>
+<script>
+const overlay=document.getElementById('overlay'),video=document.getElementById('video'),hint=document.getElementById('hint'),toast=document.getElementById('toast');let stream=null;
+function msg(t){toast.textContent=t;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2800)}
+function stop(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;video.style.display='none';hint.style.display='block'}
+function close(){overlay.classList.remove('open');stop()}
+document.getElementById('find').onclick=()=>overlay.classList.add('open');document.getElementById('close').onclick=close;overlay.onclick=e=>{if(e.target===overlay)close()};
+document.getElementById('cameraBtn').onclick=async()=>{try{if(!navigator.mediaDevices?.getUserMedia)throw Error();stop();stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;video.style.display='block';hint.style.display='none'}catch(e){msg('Camera unavailable or permission denied. Please upload a selfie instead.')}};
+document.getElementById('upload').onclick=()=>document.getElementById('file').click();document.getElementById('file').onchange=e=>{if(e.target.files?.[0]){close();msg('Selfie selected. Connect your photo-matching API to continue.')}};
+document.getElementById('help').onclick=()=>msg('Need help? Contact the event studio for assistance.');document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+</script>
+</body></html>

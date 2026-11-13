@@ -32,7 +32,7 @@ export function GuestProcessingPage() {
         : 'Preparing your search';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+    <div className="flex min-h-[50dvh] flex-1 flex-col items-center justify-center page-x py-10">
       {searchQuery.data?.status === 'failed' ? (
         <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive text-xl">
           !

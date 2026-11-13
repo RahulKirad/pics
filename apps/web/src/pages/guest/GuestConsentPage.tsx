@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { guestService } from '@/services/guest';
 import { getErrorMessage } from '@/services/api';
@@ -39,16 +39,8 @@ export function GuestConsentPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col px-4 py-6">
-      <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
-        <Link
-          to={`/e/${eventToken}`}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-8 hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Link>
-
+    <div className="flex min-h-0 flex-1 flex-col page-x py-4 sm:py-6">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
             <ShieldCheck className="h-7 w-7" />
