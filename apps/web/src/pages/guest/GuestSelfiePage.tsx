@@ -97,8 +97,8 @@ export function GuestSelfiePage() {
   const isBusy = validateMutation.isPending || submitMutation.isPending;
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      <header className="relative z-20 px-4 py-4 safe-top">
+    <div className="flex min-h-dvh flex-col bg-black text-white">
+      <header className="relative z-20 shrink-0 px-4 py-3 safe-top safe-x">
         <h1 className="text-center text-lg font-semibold">Take a selfie</h1>
         <p className="mt-1 text-center text-sm text-white/60">
           We&apos;ll use this once to find your event photos

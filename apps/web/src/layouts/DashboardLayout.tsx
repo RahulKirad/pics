@@ -9,7 +9,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth-store';
@@ -35,8 +35,13 @@ export function DashboardLayout() {
     navigate('/login', { replace: true });
   };
 
+  useEffect(() => {
+    document.body.classList.add('dashboard-mobile-chrome');
+    return () => document.body.classList.remove('dashboard-mobile-chrome');
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background overflow-x-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col border-r bg-background">
         <div className="flex h-16 items-center border-b px-4">
@@ -78,9 +83,9 @@ export function DashboardLayout() {
       </aside>
 
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-40 border-b bg-background safe-top">
-        <div className="flex h-14 items-center justify-between px-4">
-          <BrandLogo linkToHome size="sm" />
+      <header className="lg:hidden sticky top-0 z-40 border-b bg-background safe-top safe-x">
+        <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">
+          <BrandLogo linkToHome size="sm" className="min-w-0 max-w-[52%]" />
           <button
             onClick={() => setSidebarOpen(true)}
             className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-accent"
@@ -138,28 +143,31 @@ export function DashboardLayout() {
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="lg:pl-64 pb-20 lg:pb-0">
-        <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
+      <main className="lg:pl-64 pb-nav-mobile lg:pb-0">
+        <div className="container mx-auto page-x py-5 sm:py-6 md:py-8 max-w-full">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background safe-bottom">
-        <div className="flex items-center justify-around h-16">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background safe-bottom safe-x">
+        <div className="mx-auto flex h-16 max-w-lg items-stretch justify-around">
           {mobileNavLinks.map((link) => {
-            const isActive = location.pathname === link.to;
+            const isActive =
+              link.to === '/dashboard'
+                ? location.pathname === '/dashboard'
+                : location.pathname.startsWith(link.to);
             return (
               <Link
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[44px] text-xs',
+                  'flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] sm:text-xs',
                   isActive ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                <link.icon className="h-5 w-5" />
-                <span>{link.label}</span>
+                <link.icon className="h-5 w-5 shrink-0" />
+                <span className="truncate max-w-full">{link.label}</span>
               </Link>
             );
           })}

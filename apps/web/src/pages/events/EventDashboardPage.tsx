@@ -21,6 +21,7 @@ import { FolderSection } from '@/components/events/FolderSection';
 import { UploadDrawer } from '@/components/uploads/UploadDrawer';
 import { PhotoGrid } from '@/components/photos/PhotoGrid';
 import { QrCodeModal } from '@/components/events/QrCodeModal';
+import { FacesExplorerModal } from '@/components/events/FacesExplorerModal';
 import { EventAnalyticsSection } from '@/components/analytics/EventAnalyticsSection';
 
 function formatDate(date: string | null) {
@@ -39,6 +40,7 @@ export function EventDashboardPage() {
   const queryClient = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [facesOpen, setFacesOpen] = useState(false);
 
   const { data: event, isLoading, error } = useQuery({
     queryKey: ['event', eventId],
@@ -87,7 +89,7 @@ export function EventDashboardPage() {
               <p className="text-muted-foreground">{event.eventType}</p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
               <Upload className="h-4 w-4" />
               Upload
@@ -108,23 +110,44 @@ export function EventDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Photos', value: event.photoCount, icon: Image },
-          { label: 'Faces detected', value: event.faceCount, icon: Users },
-          { label: 'Guest searches', value: event.guestSearchCount, icon: Users },
-          { label: 'Downloads', value: event.downloadCount, icon: Download },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                </div>
-                <stat.icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          { label: 'Photos', value: event.photoCount, icon: Image, onClick: undefined },
+          {
+            label: 'Faces detected',
+            value: event.faceCount,
+            icon: Users,
+            onClick: () => setFacesOpen(true),
+          },
+          { label: 'Guest searches', value: event.guestSearchCount, icon: Users, onClick: undefined },
+          { label: 'Downloads', value: event.downloadCount, icon: Download, onClick: undefined },
+        ].map((stat) => {
+          const interactive = Boolean(stat.onClick);
+          const Wrapper = interactive ? 'button' : 'div';
+          return (
+            <Card
+              key={stat.label}
+              className={interactive ? 'transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-ring' : undefined}
+            >
+              <CardContent className="p-0">
+                <Wrapper
+                  type={interactive ? 'button' : undefined}
+                  className={`block w-full pt-6 px-6 pb-6 text-left ${interactive ? 'cursor-pointer' : ''}`}
+                  onClick={stat.onClick}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      {stat.label === 'Faces detected' && stat.value > 0 && (
+                        <p className="mt-1 text-[10px] text-primary">Tap to explore people</p>
+                      )}
+                    </div>
+                    <stat.icon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </Wrapper>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -196,6 +219,7 @@ export function EventDashboardPage() {
         onComplete={() => {
           queryClient.invalidateQueries({ queryKey: ['event', eventId] });
           queryClient.invalidateQueries({ queryKey: ['event-photos', eventId] });
+          queryClient.invalidateQueries({ queryKey: ['event-face-clusters', eventId] });
         }}
       />
 
@@ -205,6 +229,13 @@ export function EventDashboardPage() {
         guestUrl={guestUrl}
         open={qrOpen}
         onClose={() => setQrOpen(false)}
+      />
+
+      <FacesExplorerModal
+        eventId={event.id}
+        faceCount={event.faceCount}
+        open={facesOpen}
+        onClose={() => setFacesOpen(false)}
       />
     </div>
   );

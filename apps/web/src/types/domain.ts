@@ -96,6 +96,8 @@ export interface PhotoSummary {
   previewUrl: string | null;
   processingError: string | null;
   createdAt: string;
+  /** Bolt storage path — used for signed URLs / face rescan (not shown to guests). */
+  storagePath?: string | null;
 }
 
 export interface PaginatedResponse<T> {

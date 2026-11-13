@@ -79,7 +79,7 @@ export function SelfieCamera({ onCapture, disabled }: SelfieCameraProps) {
   };
 
   return (
-    <div className="relative flex min-h-[60vh] flex-1 flex-col bg-black">
+    <div className="relative flex min-h-0 flex-1 flex-col bg-black">
       {error ? (
         <div className="flex flex-1 flex-col items-center justify-center px-6 text-center text-white/80">
           <Camera className="mb-4 h-10 w-10 text-white/50" />

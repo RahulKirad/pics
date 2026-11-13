@@ -15,6 +15,12 @@ import { EventPrivacyMode, EventStatus, PhotoStatus, UserRole } from '@/types/do
 import type { FaceEmbedding } from '@/lib/face/browser-face';
 import { cosineSimilarity } from '@/lib/face/browser-face';
 import type { LoginInput, RegisterInput } from '@/lib/schemas';
+import {
+  deleteDemoPhotoBlob,
+  primeDemoPhotoPreview,
+  resolveDemoPhotoPreviewUrl,
+} from '@/lib/bolt/demo-blobs';
+import { deleteFaceRecordsForPhoto } from '@/lib/face/face-index';
 
 const USERS_KEY = 'picsharenow:demo:users';
 const EVENTS_KEY = 'picsharenow:demo:events';
@@ -164,9 +170,24 @@ export const localDemo = {
     };
   },
 
-  listPhotos(eventId: string) {
+  syncFaceCount(eventId: string, faceCount: number) {
+    const events = load<EventSummary[]>(EVENTS_KEY, []);
+    const idx = events.findIndex((e) => e.id === eventId);
+    if (idx >= 0) {
+      events[idx]!.faceCount = faceCount;
+      save(EVENTS_KEY, events);
+    }
+  },
+
+  async listPhotos(eventId: string) {
     const photos = load<DemoPhoto[]>(PHOTOS_KEY, []).filter((p) => p.eventId === eventId);
-    return { items: photos, hasMore: false, nextCursor: null };
+    const items = await Promise.all(
+      photos.map(async (p) => {
+        const url = await resolveDemoPhotoPreviewUrl(p.id);
+        return { ...p, thumbnailUrl: url, previewUrl: url };
+      }),
+    );
+    return { items, hasMore: false, nextCursor: null };
   },
 
   async addPhoto(
@@ -177,7 +198,7 @@ export const localDemo = {
   ): Promise<PhotoSummary> {
     const photos = load<DemoPhoto[]>(PHOTOS_KEY, []);
     const id = uid();
-    const objectUrl = URL.createObjectURL(file);
+    const previewUrl = await primeDemoPhotoPreview(id, file);
     const photo: DemoPhoto = {
       id,
       eventId,
@@ -188,8 +209,8 @@ export const localDemo = {
       status: PhotoStatus.READY,
       width: null,
       height: null,
-      thumbnailUrl: objectUrl,
-      previewUrl: objectUrl,
+      thumbnailUrl: null,
+      previewUrl: null,
       processingError:
         embeddings.length === 0 ? 'Photo saved. No faces indexed — guest matching may skip it.' : null,
       createdAt: new Date().toISOString(),
@@ -209,7 +230,31 @@ export const localDemo = {
       events[idx]!.faceCount += embeddings.length;
       save(EVENTS_KEY, events);
     }
-    return photo;
+    return { ...photo, thumbnailUrl: previewUrl, previewUrl };
+  },
+
+  async deletePhoto(photoId: string, eventId: string): Promise<void> {
+    const photos = load<DemoPhoto[]>(PHOTOS_KEY, []);
+    const idx = photos.findIndex((p) => p.id === photoId && p.eventId === eventId);
+    if (idx < 0) throw new Error('Photo not found');
+
+    const embeddings = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
+    const faceCount = embeddings[photoId]?.length ?? 0;
+    delete embeddings[photoId];
+    save(EMBEDDINGS_KEY, embeddings);
+
+    photos.splice(idx, 1);
+    save(PHOTOS_KEY, photos);
+    await deleteDemoPhotoBlob(photoId);
+    await deleteFaceRecordsForPhoto(photoId);
+
+    const events = load<EventSummary[]>(EVENTS_KEY, []);
+    const eventIdx = events.findIndex((e) => e.id === eventId);
+    if (eventIdx >= 0) {
+      events[eventIdx]!.photoCount = Math.max(0, events[eventIdx]!.photoCount - 1);
+      events[eventIdx]!.faceCount = Math.max(0, events[eventIdx]!.faceCount - faceCount);
+      save(EVENTS_KEY, events);
+    }
   },
 
   createGuestSession(eventToken: string): GuestSessionSummary {
@@ -240,29 +285,35 @@ export const localDemo = {
     return { consentGiven: true, consentVersion: '1.0' };
   },
 
-  matchGuest(eventToken: string, query: FaceEmbedding): GuestSearchResult {
+  async matchGuest(eventToken: string, query: FaceEmbedding): Promise<GuestSearchResult> {
     const event = load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken);
     if (!event) throw new Error('Event not found');
     const photos = load<DemoPhoto[]>(PHOTOS_KEY, []).filter((p) => p.eventId === event.id);
     const embeddings = load<Record<string, FaceEmbedding[]>>(EMBEDDINGS_KEY, {});
 
-    const matches = photos
+    const ranked = photos
       .map((photo) => {
         const faces = embeddings[photo.id] ?? [];
         const best = faces.reduce((max, emb) => Math.max(max, cosineSimilarity(query, emb)), 0);
         return { photo, best };
       })
       .filter((m) => m.best >= 0.55)
-      .sort((a, b) => b.best - a.best)
-      .map((m) => ({
-        photoId: m.photo.id,
-        thumbnailUrl: m.photo.thumbnailUrl ?? '',
-        previewUrl: m.photo.previewUrl ?? '',
-        viewerUrl: m.photo.previewUrl ?? '',
-        matchScore: m.best,
-        similarity: m.best,
-        originalName: m.photo.originalName,
-      }));
+      .sort((a, b) => b.best - a.best);
+
+    const matches = await Promise.all(
+      ranked.map(async (m) => {
+        const url = (await resolveDemoPhotoPreviewUrl(m.photo.id)) ?? '';
+        return {
+          photoId: m.photo.id,
+          thumbnailUrl: url,
+          previewUrl: url,
+          viewerUrl: url,
+          matchScore: m.best,
+          similarity: m.best,
+          originalName: m.photo.originalName,
+        };
+      }),
+    );
 
     return {
       searchId: uid(),

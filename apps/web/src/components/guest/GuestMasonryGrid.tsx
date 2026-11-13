@@ -16,7 +16,7 @@ function getAspectRatio(photo: GuestMatchedPhoto): number {
 
 export function GuestMasonryGrid({ photos, onPhotoClick }: GuestMasonryGridProps) {
   return (
-    <div className="columns-2 gap-2 p-2 sm:columns-3 md:columns-4">
+    <div className="columns-2 gap-2 p-2 pb-6 sm:columns-3 sm:pb-8 md:columns-4">
       {photos.map((photo, index) => {
         const aspectRatio = getAspectRatio(photo);
         return (

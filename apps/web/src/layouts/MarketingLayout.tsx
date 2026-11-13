@@ -46,8 +46,9 @@ export function MarketingLayout() {
           scrolled && isHome ? 'scrolled' : ''
         } ${!isHome ? 'border-border' : ''}`}
       >
-        <div className="mx-auto flex h-[74px] max-w-[1180px] items-center justify-between px-6">
-          <BrandLogo linkToHome size="md" />
+        <div className="mx-auto flex min-h-[3.5rem] max-w-[1180px] items-center justify-between gap-2 px-4 py-2 sm:h-[74px] sm:gap-4 sm:px-6 sm:py-0">
+          <BrandLogo linkToHome size="sm" className="shrink-0 sm:hidden" />
+          <BrandLogo linkToHome size="md" className="hidden shrink-0 sm:inline-flex" />
 
           <nav className="hidden items-center gap-8 md:flex">
             {HEADER_NAV.map((link) => (
@@ -62,23 +63,29 @@ export function MarketingLayout() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <Link
               to="/login"
-              className={`hidden text-sm font-medium md:inline ${isHome ? 'text-[#0f172a]' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`hidden text-sm font-medium lg:inline ${isHome ? 'text-[#0f172a]' : 'text-muted-foreground hover:text-foreground'}`}
             >
               Log in
             </Link>
             <Link
               to="/register"
-              className={isHome ? 'landing-btn-primary !py-2.5 !text-sm' : 'inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground'}
+              className={
+                isHome
+                  ? 'landing-btn-primary !px-3 !py-2 !text-xs sm:!px-4 sm:!py-2.5 sm:!text-sm'
+                  : 'inline-flex max-w-[9.5rem] items-center justify-center rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground sm:max-w-none sm:px-4 sm:text-sm'
+              }
             >
-              Start Free Trial
+              <span className="sm:hidden">Try free</span>
+              <span className="hidden sm:inline">Start Free Trial</span>
             </Link>
             <button
               type="button"
-              className="md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-md md:hidden"
               aria-label="Toggle menu"
+              aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
             >
               {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

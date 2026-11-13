@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { runHostedHealthChecks, type HostedHealthResult } from '@/lib/bolt/hosted-health';
 import { Link } from 'react-router-dom';
 import { Copy, RefreshCw, Trash2 } from 'lucide-react';
 import { getBoltEnv } from '@/lib/bolt/config';
@@ -12,6 +13,8 @@ import {
 export function DebugPage() {
   const env = getBoltEnv();
   const [tick, setTick] = useState(0);
+  const [hostedHealth, setHostedHealth] = useState<HostedHealthResult | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
   const entries = useMemo(() => getDebugEntries(), [tick]);
 
   const bundle = useMemo(() => exportDebugBundle(), [tick]);
@@ -50,6 +53,46 @@ export function DebugPage() {
             />
           </dl>
         </section>
+
+        {env.configured ? (
+          <section className="rounded-xl border border-[#e6eaf3] bg-white p-5 shadow-sm">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-[#64748b]">
+              Hosted checks
+            </h2>
+            <p className="mb-3 text-xs text-[#64748b]">
+              Uploads, previews, faces, slideshow, and guest match all use the same browser + Bolt
+              stack when env vars are set. Run this on your published URL.
+            </p>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-lg bg-[#1d4ed8] px-3 py-2 text-xs font-semibold text-white"
+              disabled={healthLoading}
+              onClick={async () => {
+                setHealthLoading(true);
+                try {
+                  setHostedHealth(await runHostedHealthChecks());
+                } finally {
+                  setHealthLoading(false);
+                }
+              }}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${healthLoading ? 'animate-spin' : ''}`} />
+              {healthLoading ? 'Running…' : 'Run hosted smoke test'}
+            </button>
+            {hostedHealth ? (
+              <ul className="mt-4 space-y-2 text-sm">
+                {hostedHealth.checks.map((c) => (
+                  <li key={c.name} className="flex flex-wrap gap-2">
+                    <span className={c.ok ? 'text-green-700' : 'text-red-700'}>
+                      {c.ok ? '✓' : '✗'} {c.name}
+                    </span>
+                    {c.detail ? <span className="text-[#64748b]">— {c.detail}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className="rounded-xl border border-[#e6eaf3] bg-white p-5 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center gap-2">
