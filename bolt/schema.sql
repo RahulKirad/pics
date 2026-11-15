@@ -155,4 +155,34 @@ $$;
 grant execute on function store_photo_embeddings(uuid, jsonb) to authenticated;
 grant execute on function match_guest_faces(text, vector) to anon, authenticated;
 
+-- Guest mobile / anon: single call, no fragile PostgREST join
+create or replace function get_guest_event(p_event_token text)
+returns json
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select json_build_object(
+    'name', e.name,
+    'description', e.description,
+    'event_type', e.event_type,
+    'event_date', e.event_date,
+    'location', e.location,
+    'privacy_mode', e.privacy_mode,
+    'download_enabled', e.download_enabled,
+    'guest_upload_enabled', e.guest_upload_enabled,
+    'status', e.status,
+    'photo_count', e.photo_count,
+    'business_name', coalesce(p.business_name, 'Event Studio')
+  )
+  from events e
+  left join profiles p on p.id = e.owner_id
+  where lower(e.event_token) = lower(trim(p_event_token))
+    and e.status in ('ACTIVE', 'READY', 'PROCESSING', 'DRAFT')
+  limit 1;
+$$;
+
+grant execute on function get_guest_event(text) to anon, authenticated;
+
 -- Storage bucket: create "event-photos" as public read in Bolt Database Storage UI.

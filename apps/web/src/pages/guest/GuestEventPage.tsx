@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { guestService } from '@/services/guest';
 import { getErrorMessage } from '@/services/api';
 import { useGuestStore } from '@/stores/guest-store';
+import { getBoltEnv } from '@/lib/bolt/config';
+import { isLocalHost, normalizeGuestEventToken } from '@/lib/guest-event-token';
 import '@/styles/guest-event-landing.css';
 
 function formatEventDate(value: string | null): string | null {
@@ -29,35 +31,37 @@ export function GuestEventPage() {
   const hasConsent = useGuestStore((s) => s.hasConsent);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const normalizedToken = normalizeGuestEventToken(eventToken);
+
   const eventQuery = useQuery({
-    queryKey: ['guest-event', eventToken],
-    queryFn: () => guestService.getEvent(eventToken!),
-    enabled: Boolean(eventToken),
-    retry: false,
+    queryKey: ['guest-event', normalizedToken],
+    queryFn: () => guestService.getEvent(normalizedToken),
+    enabled: Boolean(normalizedToken),
+    retry: 1,
   });
 
   const previewQuery = useQuery({
     queryKey: ['guest-event-preview-photos', eventToken],
-    queryFn: () => guestService.listEventPreviewPhotos(eventToken!),
-    enabled: Boolean(eventToken) && eventQuery.isSuccess,
+    queryFn: () => guestService.listEventPreviewPhotos(normalizedToken),
+    enabled: Boolean(normalizedToken) && eventQuery.isSuccess,
     staleTime: 60_000,
   });
 
   const createSessionMutation = useMutation({
-    mutationFn: () => guestService.createSession(eventToken!),
+    mutationFn: () => guestService.createSession(normalizedToken),
     onSuccess: (session) => {
       setSession(session);
-      navigate(`/e/${eventToken}/consent`);
+      navigate(`/e/${normalizedToken}/consent`);
     },
     onError: (error) => setActionError(getErrorMessage(error)),
   });
 
   const handleContinue = () => {
     setActionError(null);
-    if (!eventToken) return;
+    if (!normalizedToken) return;
 
-    if (isSessionValid(eventToken)) {
-      navigate(hasConsent ? `/e/${eventToken}/selfie` : `/e/${eventToken}/consent`);
+    if (isSessionValid(normalizedToken)) {
+      navigate(hasConsent ? `/e/${normalizedToken}/selfie` : `/e/${normalizedToken}/consent`);
       return;
     }
 
@@ -77,6 +81,9 @@ export function GuestEventPage() {
   }
 
   if (eventQuery.isError || !eventQuery.data) {
+    const env = getBoltEnv();
+    const showHostHint = !env.configured && !isLocalHost();
+
     return (
       <div className="guest-landing-page flex min-h-dvh flex-col items-center justify-center px-6 py-12 text-center">
         <div className="guest-landing-camera mb-6">
@@ -86,6 +93,15 @@ export function GuestEventPage() {
         <p className="guest-landing-helper max-w-sm">
           {getErrorMessage(eventQuery.error) || 'This event link is invalid or no longer active.'}
         </p>
+        {showHostHint ? (
+          <p className="mt-4 max-w-sm text-xs text-[#858792]">
+            This published site is not connected to Bolt Database. The photographer must add database env vars, redeploy,
+            create the event on the live site, and share that guest link.
+          </p>
+        ) : null}
+        {env.configured && normalizedToken ? (
+          <p className="mt-3 text-xs text-[#858792]">Link id: {normalizedToken}</p>
+        ) : null}
       </div>
     );
   }

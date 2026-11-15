@@ -68,3 +68,33 @@ using (
 
 grant select on photos to anon;
 grant insert, update, delete on guest_sessions to anon;
+
+-- Guest event page (fixes "Event unavailable" on mobile when profiles join fails)
+create or replace function get_guest_event(p_event_token text)
+returns json
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select json_build_object(
+    'name', e.name,
+    'description', e.description,
+    'event_type', e.event_type,
+    'event_date', e.event_date,
+    'location', e.location,
+    'privacy_mode', e.privacy_mode,
+    'download_enabled', e.download_enabled,
+    'guest_upload_enabled', e.guest_upload_enabled,
+    'status', e.status,
+    'photo_count', e.photo_count,
+    'business_name', coalesce(p.business_name, 'Event Studio')
+  )
+  from events e
+  left join profiles p on p.id = e.owner_id
+  where lower(e.event_token) = lower(trim(p_event_token))
+    and e.status in ('ACTIVE', 'READY', 'PROCESSING', 'DRAFT')
+  limit 1;
+$$;
+
+grant execute on function get_guest_event(text) to anon, authenticated;

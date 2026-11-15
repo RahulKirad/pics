@@ -153,7 +153,10 @@ export const localDemo = {
   },
 
   findEventByToken(eventToken: string) {
-    return load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken) ?? null;
+    const t = eventToken.trim().toLowerCase();
+    return (
+      load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken.toLowerCase() === t) ?? null
+    );
   },
 
   async listEventPreviewPhotos(eventToken: string, limit = 12) {
