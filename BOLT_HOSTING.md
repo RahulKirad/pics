@@ -27,8 +27,11 @@ VITE_GEMINI_THINKING_LEVEL=low
 
 Bolt also accepts legacy names `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 
-5. Build command: `npm run build --workspace=@photo-platform/web` or from `apps/web`: `npm run build`.
-6. After deploy, open **`/debug`** → **Run hosted smoke test**, then copy the JSON bundle if anything fails.
+5. Build command: `npm run build` (root) or `npm run build --workspace=@photo-platform/web`.
+6. **Guest links (`/e/...`)** — publish must include SPA fallback (`apps/web/public/_redirects` → copied to `dist`). Re-deploy if you see Netlify “Page not found”.
+7. Run **`bolt/schema.sql`** (and **`bolt/schema_hosting_patch.sql`** if you deployed before guest policies existed).
+8. After deploy, open **`/debug`** → confirm **Mode: bolt** (not `local_demo`). If `local_demo`, set `VITE_BOLT_DATABASE_*` secrets and **rebuild**.
+9. Run **hosted smoke test** on `/debug`; copy JSON if anything fails.
 
 ## Hosted feature parity (Bolt publish)
 

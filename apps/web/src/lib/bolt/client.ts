@@ -36,7 +36,7 @@ export async function ownerPhotoUrl(storagePath: string): Promise<string | null>
   const supabase = getBoltClient();
   if (!supabase || !storagePath) return null;
 
-  const { data, error } = await supabase.storage.from(env.bucket).createSignedUrl(storagePath, 60 * 60);
+  const { data, error } = await supabase.storage.from(env.bucket).createSignedUrl(storagePath, 60 * 60 * 24 * 7);
   if (!error && data?.signedUrl) return data.signedUrl;
 
   return publicPhotoUrl(storagePath);

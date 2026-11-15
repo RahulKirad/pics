@@ -36,6 +36,13 @@ export function GuestEventPage() {
     retry: false,
   });
 
+  const previewQuery = useQuery({
+    queryKey: ['guest-event-preview-photos', eventToken],
+    queryFn: () => guestService.listEventPreviewPhotos(eventToken!),
+    enabled: Boolean(eventToken) && eventQuery.isSuccess,
+    staleTime: 60_000,
+  });
+
   const createSessionMutation = useMutation({
     mutationFn: () => guestService.createSession(eventToken!),
     onSuccess: (session) => {
@@ -130,7 +137,7 @@ export function GuestEventPage() {
         )}
       </header>
 
-      <GuestEventCarousel />
+      <GuestEventCarousel eventPhotos={previewQuery.data ?? []} />
 
       <section className="guest-landing-bottom safe-bottom">
         <p className="guest-landing-helper">
