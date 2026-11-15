@@ -13,6 +13,7 @@ import { getBoltEnv } from '@/lib/bolt/config';
 import { localDemo } from '@/lib/bolt/local-demo';
 import { extractPrimaryFaceEmbedding, validateSelfieBlob } from '@/lib/face/browser-face';
 import { logDebug } from '@/lib/bolt/debug-log';
+import { normalizeGuestEventToken } from '@/lib/guest-event-token';
 import { toPgVector } from '@/lib/bolt/vector-rpc';
 
 function base64ToBlob(base64: string, mime = 'image/jpeg'): Blob {
@@ -39,7 +40,7 @@ export const guestService = {
     const { data: event, error: eventError } = await supabase
       .from('events')
       .select('id')
-      .eq('event_token', eventToken)
+      .ilike('event_token', normalizeGuestEventToken(eventToken))
       .maybeSingle();
     if (eventError) throw eventError;
     if (!event) return [];
@@ -69,21 +70,66 @@ export const guestService = {
   },
 
   async getEvent(eventToken: string): Promise<GuestEventPublic> {
+    const token = normalizeGuestEventToken(eventToken);
+    if (!token) throw new Error('Invalid event link');
+
     if (!getBoltEnv().configured) {
-      const event = localDemo.getPublicEvent(eventToken);
-      if (!event) throw new Error('Event not found');
+      const event = localDemo.getPublicEvent(token);
+      if (!event) {
+        throw new Error(
+          'Event not found on this device. The photographer must use a Bolt-hosted site with database connected — this phone cannot see demo-only events.',
+        );
+      }
       return event;
     }
-    const { data, error } = await getBoltClient()!
+
+    const supabase = getBoltClient()!;
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_guest_event', {
+      p_event_token: token,
+    });
+
+    if (!rpcError && rpcData && typeof rpcData === 'object') {
+      const row = rpcData as Record<string, unknown>;
+      if (row.name) {
+        return {
+          name: String(row.name),
+          description: (row.description as string) ?? null,
+          eventType: (row.event_type as string) ?? null,
+          eventDate: (row.event_date as string) ?? null,
+          location: (row.location as string) ?? null,
+          privacyMode: (row.privacy_mode as GuestEventPublic['privacyMode']) ?? 'PRIVATE_PERSONALIZED',
+          downloadEnabled: Boolean(row.download_enabled ?? true),
+          guestUploadEnabled: Boolean(row.guest_upload_enabled ?? false),
+          status: String(row.status ?? 'ACTIVE') as GuestEventPublic['status'],
+          photoCount: Number(row.photo_count ?? 0),
+          businessName: String(row.business_name ?? 'Event Studio'),
+        };
+      }
+    }
+
+    if (rpcError) {
+      logDebug('warn', 'get_guest_event RPC failed, falling back', { error: rpcError, context: { token } });
+    }
+
+    const { data, error } = await supabase
       .from('events')
       .select(
-        'name, description, event_type, event_date, location, privacy_mode, download_enabled, guest_upload_enabled, status, photo_count, profiles(business_name)',
+        'name, description, event_type, event_date, location, privacy_mode, download_enabled, guest_upload_enabled, status, photo_count',
       )
-      .eq('event_token', eventToken)
+      .ilike('event_token', token)
       .maybeSingle();
-    if (error) throw error;
-    if (!data) throw new Error('Event not found');
-    const profile = data.profiles as { business_name?: string } | null;
+
+    if (error) {
+      logDebug('error', 'Guest getEvent failed', { error, context: { token } });
+      throw new Error(error.message || 'Could not load event. Check database guest permissions (run bolt/schema_hosting_patch.sql).');
+    }
+    if (!data) {
+      throw new Error(
+        'No event matches this link. Confirm the URL from your photographer’s dashboard (QR / guest link) and that the event was created on the same hosted site.',
+      );
+    }
+
     return {
       name: data.name,
       description: data.description,
@@ -95,7 +141,7 @@ export const guestService = {
       guestUploadEnabled: data.guest_upload_enabled,
       status: data.status,
       photoCount: data.photo_count ?? 0,
-      businessName: profile?.business_name ?? 'Event Studio',
+      businessName: 'Event Studio',
     };
   },
 
