@@ -1,0 +1,2 @@
+# SPA fallback — required for guest links like /e/{token} on Netlify / Bolt.host
+/*    /index.html   200

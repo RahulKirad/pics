@@ -23,7 +23,51 @@ function base64ToBlob(base64: string, mime = 'image/jpeg'): Blob {
   return new Blob([bytes], { type: mime });
 }
 
+export type GuestEventPreviewPhoto = {
+  id: string;
+  url: string;
+  label: string;
+};
+
 export const guestService = {
+  async listEventPreviewPhotos(eventToken: string, limit = 12): Promise<GuestEventPreviewPhoto[]> {
+    if (!getBoltEnv().configured) {
+      return localDemo.listEventPreviewPhotos(eventToken, limit);
+    }
+
+    const supabase = getBoltClient()!;
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('event_token', eventToken)
+      .maybeSingle();
+    if (eventError) throw eventError;
+    if (!event) return [];
+
+    const { data: rows, error } = await supabase
+      .from('photos')
+      .select('id, original_name, storage_path')
+      .eq('event_id', event.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      logDebug('warn', 'Guest preview photos failed', { error, context: { eventToken } });
+      return [];
+    }
+
+    return (rows ?? [])
+      .map((row) => {
+        const url = publicPhotoUrl(row.storage_path);
+        if (!url) return null;
+        return {
+          id: row.id,
+          url,
+          label: row.original_name?.replace(/\.[^.]+$/, '').slice(0, 28) || 'Event photo',
+        };
+      })
+      .filter((x): x is GuestEventPreviewPhoto => x !== null);
+  },
+
   async getEvent(eventToken: string): Promise<GuestEventPublic> {
     if (!getBoltEnv().configured) {
       const event = localDemo.getPublicEvent(eventToken);
@@ -32,7 +76,9 @@ export const guestService = {
     }
     const { data, error } = await getBoltClient()!
       .from('events')
-      .select('name, description, event_type, event_date, location, privacy_mode, download_enabled, guest_upload_enabled, status, photo_count, profiles(business_name)')
+      .select(
+        'name, description, event_type, event_date, location, privacy_mode, download_enabled, guest_upload_enabled, status, photo_count, profiles(business_name)',
+      )
       .eq('event_token', eventToken)
       .maybeSingle();
     if (error) throw error;

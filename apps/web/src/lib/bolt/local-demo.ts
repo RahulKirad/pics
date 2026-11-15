@@ -152,8 +152,27 @@ export const localDemo = {
     return load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.id === id) ?? null;
   },
 
+  findEventByToken(eventToken: string) {
+    return load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken) ?? null;
+  },
+
+  async listEventPreviewPhotos(eventToken: string, limit = 12) {
+    const event = this.findEventByToken(eventToken);
+    if (!event) return [];
+    const { items } = await this.listPhotos(event.id);
+    return items
+      .filter((p) => p.previewUrl || p.thumbnailUrl)
+      .slice(0, limit)
+      .map((p) => ({
+        id: p.id,
+        url: p.previewUrl ?? p.thumbnailUrl ?? '',
+        label: p.originalName.replace(/\.[^.]+$/, '').slice(0, 28),
+      }))
+      .filter((p) => p.url);
+  },
+
   getPublicEvent(eventToken: string): GuestEventPublic | null {
-    const event = load<EventSummary[]>(EVENTS_KEY, []).find((e) => e.eventToken === eventToken);
+    const event = this.findEventByToken(eventToken);
     if (!event) return null;
     return {
       name: event.name,

@@ -70,12 +70,25 @@ alter table profiles enable row level security;
 alter table guest_sessions enable row level security;
 
 -- Owners manage their rows
-create policy events_owner on events for all using (auth.uid() = owner_id);
-create policy photos_owner on photos for all using (auth.uid() = owner_id);
-create policy profiles_self on profiles for all using (auth.uid() = id);
+create policy events_owner on events for all to authenticated using (auth.uid() = owner_id);
+create policy profiles_self on profiles for all to authenticated using (auth.uid() = id);
+create policy profiles_public_business on profiles for select to anon using (true);
 
--- Public can read minimal event info by token via RPC; direct select limited
-create policy events_public_read on events for select using (true);
+create policy photos_owner on photos for all to authenticated
+  using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+create policy photos_public_read on photos for select to anon using (
+  exists (select 1 from events e where e.id = photos.event_id and e.status in ('ACTIVE', 'READY', 'PROCESSING'))
+);
+
+create policy guest_sessions_anon on guest_sessions for all to anon, authenticated
+  using (true) with check (true);
+
+-- Public can read events (guest link landing)
+create policy events_public_read on events for select to anon, authenticated using (true);
+
+grant select on photos to anon;
+grant insert, update, delete on guest_sessions to anon;
 
 -- No direct SELECT on embeddings (match/store via SECURITY DEFINER functions only)
 create policy embeddings_deny_select on photo_face_embeddings for select using (false);
